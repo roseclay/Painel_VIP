@@ -5,15 +5,58 @@ function SecaoBanco() {
   const [erro, setErro] = useState(null);
   const [aberta, setAberta] = useState(null);
   const [busca, setBusca] = useState('');
+  const [aba, setAba] = useState('estrutura');
+  // Ligação da árvore com os campos do PNIPE (dicionário vem de /api/pnipe, carregado sob demanda).
+  const [ligarPnipe, setLigarPnipe] = useState(true);
+  const [dicionario, setDicionario] = useState(null);
+  const [erroPnipe, setErroPnipe] = useState(null);
 
   useEffect(() => {
     Obs.api.obter('/api/esquema').then(setEsquema).catch((e) => setErro(e.message));
   }, []);
 
+  useEffect(() => {
+    if (!ligarPnipe || dicionario || erroPnipe) return;
+    Obs.api.obter('/api/pnipe').then((d) => setDicionario(d.dicionario)).catch((e) => setErroPnipe(e.message));
+  }, [ligarPnipe, dicionario, erroPnipe]);
+
   const mapa = useMemo(() => (esquema ? Obs.esquema.montar(esquema) : null), [esquema]);
 
   if (erro) return <EstadoVazio titulo="Não foi possível carregar a estrutura do banco." descricao={erro} />;
   if (!mapa) return <p className="text-sm text-slate-500">Carregando estrutura do banco…</p>;
+
+  // Abre o detalhe só de tabelas que existem no banco (a correlação pode citar nomes compostos).
+  const abrirTabela = (nome) => mapa.porNome[nome] && setAberta(nome);
+  const abas = [
+    { chave: 'estrutura', rotulo: 'Estrutura do VIP' },
+    { chave: 'pnipe', rotulo: 'Correlação VIP × PNIPE' },
+  ];
+  const seletorAbas = (
+    <div className="flex flex-wrap gap-1 rounded-xl border border-slate-200 bg-white p-1 sm:inline-flex" role="tablist">
+      {abas.map((a) => (
+        <button
+          key={a.chave}
+          type="button"
+          role="tab"
+          aria-selected={aba === a.chave}
+          onClick={() => setAba(a.chave)}
+          className={`rounded-lg px-4 py-2 text-sm font-medium ${aba === a.chave ? 'bg-slate-800 text-white' : 'text-slate-600 hover:bg-slate-100'}`}
+        >
+          {a.rotulo}
+        </button>
+      ))}
+    </div>
+  );
+
+  if (aba === 'pnipe') {
+    return (
+      <div className="space-y-6">
+        {seletorAbas}
+        <CorrelacaoPnipe aoAbrirTabela={abrirTabela} />
+        {aberta && <DetalheTabela nome={aberta} mapa={mapa} aoAbrir={setAberta} aoFechar={() => setAberta(null)} />}
+      </div>
+    );
+  }
 
   const tabelas = esquema.tabelas;
   const indicadores = [
@@ -31,6 +74,7 @@ function SecaoBanco() {
 
   return (
     <div className="space-y-6">
+      {seletorAbas}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-5">
         {indicadores.map((i) => (
           <div key={i.rotulo} className="rounded-xl border border-slate-200 bg-white p-4">
@@ -54,10 +98,27 @@ function SecaoBanco() {
         <TituloGrupo>Hierarquia</TituloGrupo>
         <Cartao
           titulo="Árvore de dependências"
-          descricao="Cada tabela aparece abaixo daquela de que mais depende. Ex.: instituição → campus → local → espaço físico → equipamento."
+          descricao={
+            ligarPnipe
+              ? 'Cada tabela aparece abaixo daquela de que mais depende. Sob cada tabela, as colunas que têm par no PNIPE; a linha leva ao campo correspondente.'
+              : 'Cada tabela aparece abaixo daquela de que mais depende. Ex.: instituição → campus → local → espaço físico → equipamento.'
+          }
           nota="As ligações com a tabela de usuários (quem criou ou alterou cada registro) ficam fora da árvore; aparecem no detalhe de cada tabela."
+          acoes={
+            <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-slate-200 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50">
+              <input type="checkbox" checked={ligarPnipe} onChange={(e) => setLigarPnipe(e.target.checked)} className="h-4 w-4 accent-slate-800" />
+              Ligar ao PNIPE
+            </label>
+          }
         >
-          <ArvoreHierarquia mapa={mapa} aoAbrir={setAberta} />
+          {ligarPnipe && erroPnipe && (
+            <p className="mb-3 text-sm text-red-700">Não foi possível carregar os campos do PNIPE: {erroPnipe}</p>
+          )}
+          {ligarPnipe && dicionario ? (
+            <ArvoreComPnipe mapa={mapa} aoAbrir={setAberta} dicionario={dicionario} />
+          ) : (
+            <ArvoreHierarquia mapa={mapa} aoAbrir={setAberta} />
+          )}
         </Cartao>
       </div>
 

@@ -3,8 +3,8 @@ const SECOES = [
   { chave: 'laboratorios', numero: '2', rotulo: 'Laboratórios' },
   { chave: 'localizacao', numero: '3', rotulo: 'Localização' },
   { chave: 'equipamentos', numero: '4', rotulo: 'Equipamentos' },
-  // Mostra a estrutura do banco; não usa os filtros gerais.
-  { chave: 'banco', numero: '5', rotulo: 'Mapeamento Banco de Dados' },
+  // Estrutura do banco e correlação com o PNIPE; não usa os filtros gerais.
+  { chave: 'banco', numero: '5', rotulo: 'Banco de Dados' },
 ];
 
 function secaoDoHash() {
