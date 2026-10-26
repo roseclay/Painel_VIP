@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Painel VIP</title>
+    <!-- Tailwind via CDN (Play CDN): compila as classes utilitárias no navegador, sem etapa de build. -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      body {
+        background-color: #f2f7fb;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <!-- Bibliotecas via CDN: nenhum npm install no front, nenhum bundler. -->
+    <script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone@7.29.8/babel.min.js"></script>
+    <!-- Config e lib: JavaScript puro, sem JSX. -->
+    <script src="js/config.js"></script>
+    <script src="js/lib/formato.js"></script>
+    <script src="js/lib/cores.js"></script>
+    <script src="js/lib/api.js"></script>
+    <script src="js/lib/esquema.js"></script>
+    <!-- Componentes e App: JSX, transformado no navegador pelo Babel standalone. -->
+    <script type="text/babel" data-presets="react" src="js/components/EstadoVazio.js"></script>
+    <script type="text/babel" data-presets="react" src="js/components/Header.js"></script>
+    <script type="text/babel" data-presets="react" src="js/components/Footer.js"></script>
+    <script type="text/babel" data-presets="react" src="js/components/Cartao.js"></script>
+    <script type="text/babel" data-presets="react" src="js/components/Seletor.js"></script>
+    <script type="text/babel" data-presets="react" src="js/components/BarraLista.js"></script>
+    <script type="text/babel" data-presets="react" src="js/components/GraficoColunas.js"></script>
+    <script type="text/babel" data-presets="react" src="js/components/Indicadores.js"></script>
+    <script type="text/babel" data-presets="react" src="js/components/MenuLateral.js"></script>
+    <script type="text/babel" data-presets="react" src="js/components/FiltroGlobal.js"></script>
+    <script type="text/babel" data-presets="react" src="js/components/SecaoVisaoGeral.js"></script>
+    <script type="text/babel" data-presets="react" src="js/components/SecaoLaboratorios.js"></script>
+    <script type="text/babel" data-presets="react" src="js/components/SecaoLocalizacao.js"></script>
+    <script type="text/babel" data-presets="react" src="js/components/SecaoEquipamentos.js"></script>
+    <script type="text/babel" data-presets="react" src="js/components/DetalheLaboratorio.js"></script>
+    <script type="text/babel" data-presets="react" src="js/components/ArvoreHierarquia.js"></script>
+    <script type="text/babel" data-presets="react" src="js/components/DetalheTabela.js"></script>
+    <script type="text/babel" data-presets="react" src="js/components/SecaoBanco.js"></script>
+    <script type="text/babel" data-presets="react" src="js/App.js"></script>
+  </body>
+</html>
