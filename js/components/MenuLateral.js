@@ -1,6 +1,6 @@
 function MenuLateral({ secoes, ativa, aoSelecionar }) {
   return (
-    <nav aria-label="Painéis">
+    <nav aria-label="Painéis" className="min-w-0 overflow-hidden">
       <p className="mb-2 hidden px-3 text-xs font-semibold uppercase tracking-wide text-slate-400 lg:block">
         Painéis
       </p>

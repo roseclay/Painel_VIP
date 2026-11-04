@@ -3,6 +3,8 @@ window.VIP_CONFIG = {
   nomePainel: 'Observatório de CT&I da Bahia',
   titulo: 'Vitrine tecnológica',
   textoRodape: 'Infraestrutura de pesquisa reunida a partir do VIP e da Plataforma Nacional de Infraestrutura de Pesquisa (PNIPE/MCTI).',
+  // Na implantação final, substitua pela URL do Observatório institucional.
+  observatorioBase: 'https://roseclay.github.io/Observatorio_BTX',
   // Vazio = mesma origem do servidor Node que serve esta página.
   apiBase: '',
 };

@@ -10,7 +10,7 @@ function CartaoVitrine({ item, aoAbrir }) {
       <div className="flex gap-3">
         {imagem}
         <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2"><SeloFonte fonte={item.fonte} /><span className="text-xs font-medium text-slate-400">{item.tipo === 'laboratorio' ? 'Laboratório' : 'Equipamento'}</span></div>
+          <div className="flex flex-wrap items-center gap-2"><SeloFonte fonte={item.fonte} /><span className="text-xs font-medium text-slate-400">{item.tipo === 'laboratorio' ? 'Laboratório' : 'Equipamento'}</span>{item.tipo === 'equipamento' && <span className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${item.status === 'I' ? 'bg-rose-50 text-rose-700' : 'bg-emerald-50 text-emerald-700'}`}>{item.status === 'I' ? 'Inativo' : 'Ativo'}</span>}</div>
           <h3 className="mt-2 line-clamp-3 text-base font-bold leading-snug text-slate-900">{item.nome}</h3>
           <p className="mt-1 text-sm font-semibold text-[#57269b]">{item.instituicao}</p>
         </div>
@@ -22,12 +22,12 @@ function CartaoVitrine({ item, aoAbrir }) {
         {item.equipamentos > 0 && <span className="rounded-full bg-slate-100 px-2 py-1">{item.equipamentos} equipamentos</span>}
         {item.modelo && <span className="rounded-full bg-slate-100 px-2 py-1">{item.modelo}</span>}
       </div>
-      <button type="button" onClick={() => aoAbrir(item)} className="mt-auto pt-4 text-left text-sm font-bold text-[#57269b] hover:underline">Ver mais →</button>
+      <button type="button" onClick={() => aoAbrir(item)} className="mt-auto pt-4 text-left text-sm font-bold text-[#57269b] hover:underline">Abrir painel {item.tipo === 'laboratorio' ? 'do laboratório' : 'do equipamento'} →</button>
     </article>
   );
 }
 
-function SecaoVitrine({ dados, carregando, aoAbrir }) {
+function SecaoVitrine({ dados, carregando, aoAbrir, tipo }) {
   if (carregando && !dados) return <div className="rounded-2xl bg-white p-10 text-center text-slate-500">Organizando a vitrine tecnológica…</div>;
   if (!dados) return null;
   const indicadores = [
@@ -41,7 +41,7 @@ function SecaoVitrine({ dados, carregando, aoAbrir }) {
         {indicadores.map(([rotulo, valor]) => <div key={rotulo} className="rounded-2xl border border-slate-200 bg-white p-4"><p className="text-sm text-slate-500">{rotulo}</p><p className="mt-1 text-2xl font-bold text-slate-900">{Obs.formato.numero(valor)}</p></div>)}
       </div>
       <div className="flex flex-wrap items-end justify-between gap-3">
-        <div><h2 className="text-xl font-bold text-slate-900">Infraestrutura para conhecer e compartilhar</h2><p className="mt-1 text-sm text-slate-500">{Obs.formato.numero(dados.total)} resultados · {Obs.formato.numero(dados.porFonte.vip)} do VIP · {Obs.formato.numero(dados.porFonte.pnipe)} do PNIPE</p></div>
+        <div><p className="text-xs font-bold uppercase tracking-[0.14em] text-[#57269b]">Painel {tipo === 'laboratorio' ? '1' : '2'}</p><h2 className="mt-1 text-2xl font-bold text-slate-900">{tipo === 'laboratorio' ? 'Laboratórios' : 'Equipamentos'}</h2><p className="mt-1 text-sm text-slate-500">{Obs.formato.numero(dados.total)} resultados · {Obs.formato.numero(dados.porFonte.vip)} do VIP · {Obs.formato.numero(dados.porFonte.pnipe)} do PNIPE</p></div>
         {dados.exibidos < dados.total && <p className="text-xs text-slate-500">Exibindo os primeiros {dados.exibidos} resultados. Refine os filtros para localizar itens específicos.</p>}
       </div>
       {dados.itens.length ? <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3">{dados.itens.map((item) => <CartaoVitrine key={item.id} item={item} aoAbrir={aoAbrir} />)}</div> : <EstadoVazio titulo="Nenhuma infraestrutura encontrada." descricao="Tente remover algum filtro ou usar outro termo de busca." />}
