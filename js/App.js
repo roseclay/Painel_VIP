@@ -1,41 +1,21 @@
 const SECOES = [
-  { chave: 'geral', numero: '1', rotulo: 'Visão geral' },
-  { chave: 'laboratorios', numero: '2', rotulo: 'Laboratórios' },
-  { chave: 'localizacao', numero: '3', rotulo: 'Localização' },
-  { chave: 'equipamentos', numero: '4', rotulo: 'Equipamentos' },
-  // Estrutura do banco e correlação com o PNIPE; não usa os filtros gerais.
-  { chave: 'banco', numero: '5', rotulo: 'Banco de Dados' },
+  { chave: 'vitrine', numero: '1', rotulo: 'Explorar a vitrine' },
+  { chave: 'mapa', numero: '2', rotulo: 'Mapa da infraestrutura' },
 ];
 
 function secaoDoHash() {
   const chave = window.location.hash.replace('#', '');
-  return SECOES.some((s) => s.chave === chave) ? chave : SECOES[0].chave;
+  return SECOES.some((s) => s.chave === chave) ? chave : 'vitrine';
 }
 
 function App() {
   const { useState, useEffect } = React;
-  const [erro, setErro] = useState(null);
-  const [opcoes, setOpcoes] = useState(null);
-  const [resumo, setResumo] = useState(null);
   const [secaoAtiva, setSecaoAtiva] = useState(secaoDoHash);
-  const [filtros, setFiltros] = useState(FILTROS_VAZIOS);
-  const [labAberto, setLabAberto] = useState(null);
-
-  useEffect(() => {
-    Obs.api.obter('/api/filtros').then(setOpcoes).catch((e) => setErro(e.message));
-  }, []);
-
-  // O resumo é refeito sempre que um filtro muda.
-  useEffect(() => {
-    let cancelado = false;
-    Obs.api
-      .obter('/api/resumo', paramsDosFiltros(filtros))
-      .then((d) => !cancelado && setResumo(d))
-      .catch((e) => !cancelado && setErro(e.message));
-    return () => {
-      cancelado = true;
-    };
-  }, [filtros]);
+  const [filtros, setFiltros] = useState(FILTROS_VITRINE_VAZIOS);
+  const [dados, setDados] = useState(null);
+  const [carregando, setCarregando] = useState(true);
+  const [erro, setErro] = useState(null);
+  const [itemAberto, setItemAberto] = useState(null);
 
   useEffect(() => {
     const aoMudarHash = () => setSecaoAtiva(secaoDoHash());
@@ -43,63 +23,50 @@ function App() {
     return () => window.removeEventListener('hashchange', aoMudarHash);
   }, []);
 
+  useEffect(() => {
+    let cancelado = false;
+    const atraso = window.setTimeout(() => {
+      setCarregando(true);
+      setErro(null);
+      Obs.api.obter('/api/vitrine', paramsDaVitrine(filtros))
+        .then((resultado) => { if (!cancelado) setDados(resultado); })
+        .catch((e) => { if (!cancelado) setErro(e.message); })
+        .finally(() => { if (!cancelado) setCarregando(false); });
+    }, filtros.q ? 250 : 0);
+    return () => { cancelado = true; window.clearTimeout(atraso); };
+  }, [filtros]);
+
   function selecionarSecao(chave) {
     window.location.hash = chave;
     setSecaoAtiva(chave);
   }
 
-  // Clique num local (gráfico ou cartão): filtra por ele e abre a lista de laboratórios.
-  function abrirLocal(id) {
-    setFiltros((f) => ({ ...f, local: String(id) }));
-    selecionarSecao('laboratorios');
-  }
-
-  if (erro) {
-    return (
-      <div className="mx-auto max-w-xl px-4 py-16 text-center">
-        <p className="font-medium text-red-700">Não foi possível carregar os dados.</p>
-        <p className="mt-1 text-sm text-slate-500">{erro}</p>
-        <button
-          type="button"
-          onClick={() => window.location.reload()}
-          className="mt-4 rounded-lg bg-slate-800 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700"
-        >
-          Tentar novamente
-        </button>
-      </div>
-    );
-  }
-
-  if (!opcoes || !resumo) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <p className="text-slate-500">Carregando dados dos laboratórios…</p>
-      </div>
-    );
-  }
+  const abrirItem = (item) => setItemAberto(item);
+  const detalheVip = itemAberto?.fonte === 'vip' && itemAberto?.tipo === 'laboratorio';
 
   return (
     <div className="flex min-h-screen flex-col">
       <Header />
+      <div className="mx-auto w-full max-w-[96rem] flex-1 px-4 py-6 sm:px-6 lg:py-8">
+        <div className="mb-6 rounded-2xl bg-gradient-to-br from-[#30206d] via-[#57269b] to-[#0b7f8c] p-6 text-white shadow-lg sm:p-8">
+          <p className="text-xs font-bold uppercase tracking-[0.18em] text-purple-100">Conhecimento · infraestrutura · cooperação</p>
+          <h2 className="mt-3 max-w-3xl text-2xl font-bold sm:text-4xl">Conheça a infraestrutura que impulsiona a ciência na Bahia</h2>
+          <p className="mt-3 max-w-3xl text-sm leading-relaxed text-purple-50 sm:text-base">Uma porta de entrada para descobrir laboratórios, equipamentos e competências, comparar as fontes e encontrar oportunidades de compartilhamento.</p>
+        </div>
 
-      <div className="mx-auto w-full max-w-[90rem] flex-1 px-4 py-6 sm:px-6 lg:py-8">
-        {secaoAtiva !== 'banco' && <FiltroGlobal opcoes={opcoes} filtros={filtros} aoMudar={setFiltros} />}
-
-        <div className={`${secaoAtiva === 'banco' ? '' : 'mt-5 '}grid gap-6 lg:grid-cols-[12.5rem_minmax(0,1fr)]`}>
+        <FiltroVitrine filtros={filtros} opcoes={dados?.filtros || {}} aoMudar={setFiltros} />
+        <div className="mt-6 grid gap-6 lg:grid-cols-[13.5rem_minmax(0,1fr)]">
           <MenuLateral secoes={SECOES} ativa={secaoAtiva} aoSelecionar={selecionarSecao} />
-
           <main>
-            {secaoAtiva === 'geral' && <SecaoVisaoGeral resumo={resumo} aoAbrirLocal={abrirLocal} aoAbrirLab={setLabAberto} />}
-            {secaoAtiva === 'laboratorios' && <SecaoLaboratorios filtros={filtros} aoAbrirLab={setLabAberto} />}
-            {secaoAtiva === 'localizacao' && <SecaoLocalizacao resumo={resumo} aoAbrirLocal={abrirLocal} />}
-            {secaoAtiva === 'equipamentos' && <SecaoEquipamentos resumo={resumo} />}
-            {secaoAtiva === 'banco' && <SecaoBanco />}
+            {erro && <EstadoVazio titulo="Não foi possível consultar a vitrine." descricao={erro} />}
+            {!erro && secaoAtiva === 'vitrine' && <SecaoVitrine dados={dados} carregando={carregando} aoAbrir={abrirItem} />}
+            {!erro && secaoAtiva === 'mapa' && (dados ? <MapaVitrine pontos={dados.pontos || []} /> : <p className="text-sm text-slate-500">Carregando mapa…</p>)}
           </main>
         </div>
       </div>
-
       <Footer />
-      {labAberto && <DetalheLaboratorio id={labAberto} aoFechar={() => setLabAberto(null)} />}
+      {itemAberto && detalheVip && <DetalheLaboratorio id={itemAberto.id_origem} aoFechar={() => setItemAberto(null)} />}
+      {itemAberto && !detalheVip && <DetalheVitrine item={itemAberto} aoFechar={() => setItemAberto(null)} />}
     </div>
   );
 }

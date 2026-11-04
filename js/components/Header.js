@@ -16,9 +16,9 @@ function Header() {
               {nomePainel}
             </p>
             <h1 className="mt-1 text-2xl font-bold text-slate-900 sm:text-3xl">{titulo}</h1>
-            <p className="mt-2 max-w-2xl text-sm text-slate-600">
-              Distribuição dos laboratórios, equipamentos e cursos atendidos, com os dados de
-              localização de cada espaço.
+            <p className="mt-2 max-w-3xl text-sm leading-relaxed text-slate-600">
+              Encontre laboratórios, equipamentos, competências e possibilidades de uso compartilhado.
+              Consulte o VIP e o PNIPE em conjunto ou separadamente, sempre com a origem identificada.
             </p>
           </div>
         </div>
