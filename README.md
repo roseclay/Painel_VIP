@@ -4,9 +4,11 @@ Vitrine pública de infraestrutura de pesquisa que apresenta dados do VIP e do P
 
 ## Experiência pública
 
-- filtros por fonte (VIP, PNIPE ou ambas), laboratórios/equipamentos, instituição e área temática;
+- quatro painéis independentes: Laboratórios, Equipamentos, Instituições e Mapa;
+- filtros por fonte, instituição, área temática, área de atuação, técnica e situação do equipamento;
 - busca por nome, equipamento, técnica ou palavra-chave;
-- fichas detalhadas com os campos complementares de cada fonte;
+- painel próprio de detalhe, sem janela sobreposta, com campos técnicos e situação ativo/inativo;
+- contato por telefone/e-mail, formulário que prepara a mensagem e vínculo do responsável com seu perfil no Observatório quando houver correspondência;
 - mapa reativo com os registros que possuem coordenadas geográficas;
 - área técnica de esquema e correlação preservada no código, mas fora da navegação pública.
 
@@ -23,6 +25,19 @@ npm start              # http://localhost:3000
 ```
 
 O `.env` não é versionado. Use um usuário do banco somente leitura. Não abra `public/index.html` direto nem pelo Live Server: sem o servidor Node, as chamadas a `/api` não funcionam.
+
+## Publicação estática e dados do VIP
+
+O GitHub Pages usa os catálogos públicos de `public/dados/`. O arquivo `vip.json` é gerado a partir do backup real, mas inclui somente os campos necessários à vitrine. CPF, nascimento, credenciais, hashes de senha e tokens não são exportados.
+
+```powershell
+node scripts/vip-sql-para-json.js `
+  --input C:\caminho\vipdb_bkp.sql `
+  --pnipe dados\pnipe.json `
+  --pesquisadores C:\caminho\Observatorio_BTX\data\dados_simcc_completo.json
+```
+
+O comando também gera um índice público mínimo de pesquisadores para vincular contatos da infraestrutura às fichas do Observatório.
 
 ## Estrutura
 

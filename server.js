@@ -384,6 +384,36 @@ const textoBusca = (item) => [item.nome, item.sigla, item.instituicao, item.cida
   item.areas, item.tecnicas, item.modelo, item.marca, item.laboratorio].filter(Boolean).join(' ');
 const temaDoItem = (item) => TEMAS.find(([, , re]) => re.test(textoBusca(item)))?.[0] || 'outros';
 const textoNormalizado = (s) => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+const listaCampo = (s) => [...new Set(String(s || '').split(/[;\n|]+/).map((v) => v.trim()).filter((v) => v.length > 2))];
+const prepararItem = (item) => ({ ...item, tema: temaDoItem(item), status: item.status === 'I' || item.ativo === false ? 'I' : 'A',
+  areas_lista: listaCampo(item.areas), tecnicas_lista: listaCampo(item.tecnicas) });
+
+function agregarInstituicoes(itens) {
+  const mapa = new Map();
+  for (const item of itens) {
+    if (!item.instituicao) continue;
+    const atual = mapa.get(item.instituicao) || { sigla: item.instituicao, nome: item.instituicao_nome || item.instituicao,
+      laboratorios: 0, equipamentos: 0, vip: 0, pnipe: 0, cidades: new Set(), areas: new Map() };
+    atual[item.tipo === 'laboratorio' ? 'laboratorios' : 'equipamentos']++;
+    atual[item.fonte]++;
+    if (item.cidade) atual.cidades.add(item.cidade);
+    (item.areas_lista || []).forEach((area) => atual.areas.set(area, (atual.areas.get(area) || 0) + 1));
+    mapa.set(item.instituicao, atual);
+  }
+  return [...mapa.values()].map(({ cidades, areas, ...item }) => ({ ...item, cidades: [...cidades].sort(),
+    areas: [...areas].sort((a, b) => b[1] - a[1]).slice(0, 5).map(([area]) => area) })).sort((a, b) => a.sigla.localeCompare(b.sigla, 'pt-BR'));
+}
+
+function opcoesFrequentes(itens, chave, limite = 160) {
+  const contagem = new Map();
+  itens.forEach((item) => (item[chave] || []).forEach((valor) => {
+    const k = textoNormalizado(valor);
+    const atual = contagem.get(k) || { valor, total: 0 };
+    atual.total++;
+    contagem.set(k, atual);
+  }));
+  return [...contagem.values()].sort((a, b) => b.total - a.total || a.valor.localeCompare(b.valor, 'pt-BR')).slice(0, limite);
+}
 
 function catalogoPnipe() {
   const pnipe = lerJson('pnipe.json');
@@ -412,7 +442,7 @@ function catalogoPnipe() {
       denominacoes: e.denominacoes, parametros: e.parametros,
     };
   });
-  return [...laboratorios, ...equipamentos].map((item) => ({ ...item, tema: temaDoItem(item) }));
+  return [...laboratorios, ...equipamentos].map(prepararItem);
 }
 
 async function catalogoVip() {
@@ -421,32 +451,39 @@ async function catalogoVip() {
     pool.request().query(`SELECT e.epf_cd_espfisico id, e.epf_nm_espfisico nome, e.epf_sg_espfisico sigla,
       e.epf_ds_espfisico descricao, e.epf_ds_areas areas, e.epf_ds_atividades tecnicas,
       e.epf_ds_palavras_chave palavras_chave, e.epf_cd_sala sala, e.epf_nu_capacidade capacidade,
+      e.epf_tel_contato telefone, e.epf_website website, c.cam_email email,
       CASE WHEN e.epf_st_multiusuario = 'S' THEN 1 ELSE 0 END multiusuario,
       t.tepf_nm_tipo_epf subtipo, l.loc_nm_localizacao local, c.cam_nm_campus campus,
       c.cam_nm_cidade cidade, c.cam_sg_estado estado, i.ins_sg_instituicao instituicao,
       (SELECT COUNT(*) FROM EQP_Equipamento q WHERE q.eqp_cd_espaco_fisico = e.epf_cd_espfisico AND q.eqp_status = 'A') equipamentos,
-      (SELECT TOP 1 m.epfi_nm_hash FROM EPFI_EspFisico_Imagem m WHERE m.epfi_cd_epf = e.epf_cd_espfisico AND m.epfi_status = 'A' ORDER BY m.epfi_cd_img) foto_hash
+      (SELECT TOP 1 m.epfi_nm_hash FROM EPFI_EspFisico_Imagem m WHERE m.epfi_cd_epf = e.epf_cd_espfisico AND m.epfi_status = 'A' ORDER BY m.epfi_cd_img) foto_hash,
+      (SELECT TOP 1 p.pes_nm_pessoa FROM USU_Usuario u JOIN PES_Pessoa p ON p.pes_cd_pessoa = u.usu_cd_pessoa
+        WHERE u.usu_cd_usuario = e.epf_cd_usuario_responsavel) contato
       ${LAB_BASE}`),
     pool.request().query(`SELECT q.eqp_cd_equipamento id, q.eqp_nm_equipamento nome, q.eqp_sigla sigla,
-      q.eqp_outras_denominacoes denominacoes, q.eqp_ds_modelo modelo,
+      q.eqp_outras_denominacoes denominacoes, q.eqp_ds_modelo modelo, q.eqp_ds_descricao descricao, q.eqp_status status,
       q.eqp_nu_ano_aquisicao ano, q.eqp_quantidade quantidade, f.fab_nm_fabricante marca,
       e.epf_cd_espfisico laboratorio_id, e.epf_nm_espfisico laboratorio,
-      c.cam_nm_cidade cidade, c.cam_sg_estado estado, i.ins_sg_instituicao instituicao,
+      e.epf_ds_areas areas, e.epf_ds_atividades tecnicas, e.epf_tel_contato telefone, e.epf_website website,
+      c.cam_nm_cidade cidade, c.cam_sg_estado estado, c.cam_email email,
+      i.ins_sg_instituicao instituicao, i.ins_nm_nome instituicao_nome,
       CASE WHEN e.epf_st_multiusuario = 'S' THEN 1 ELSE 0 END multiusuario,
-      (SELECT TOP 1 m.eqpi_nm_hash FROM EQPI_Equipamento_Imagem m WHERE m.eqpi_cd_eqp = q.eqp_cd_equipamento AND m.eqpi_status = 'A' ORDER BY m.eqpi_cd_img) foto_hash
+      (SELECT TOP 1 m.eqpi_nm_hash FROM EQPI_Equipamento_Imagem m WHERE m.eqpi_cd_eqp = q.eqp_cd_equipamento AND m.eqpi_status = 'A' ORDER BY m.eqpi_cd_img) foto_hash,
+      (SELECT TOP 1 p.pes_nm_pessoa FROM USU_Usuario u JOIN PES_Pessoa p ON p.pes_cd_pessoa = u.usu_cd_pessoa
+        WHERE u.usu_cd_usuario = e.epf_cd_usuario_responsavel) contato
       ${LAB_BASE.replace('WHERE', `JOIN EQP_Equipamento q ON q.eqp_cd_espaco_fisico = e.epf_cd_espfisico
-        LEFT JOIN FAB_Fabricante f ON f.fab_cd_fabricante = q.eqp_cd_fabricante WHERE`)} AND q.eqp_status = 'A'`),
+        LEFT JOIN FAB_Fabricante f ON f.fab_cd_fabricante = q.eqp_cd_fabricante WHERE`)}`),
   ]);
   return [
     ...labs.recordset.map(({ foto_hash, ...l }) => ({
       ...l, id: `vip:lab:${l.id}`, id_origem: String(l.id), fonte: 'vip', tipo: 'laboratorio',
-      imagem: imgUrl('epf', foto_hash), compartilhado: !!l.multiusuario,
+      imagem: imgUrl('epf', foto_hash), compartilhado: !!l.multiusuario, status: 'A',
     })),
     ...equipamentos.recordset.map(({ foto_hash, ...e }) => ({
       ...e, id: `vip:equip:${e.id}`, id_origem: String(e.id), fonte: 'vip', tipo: 'equipamento',
       imagem: imgUrl('eqp', foto_hash), compartilhado: !!e.multiusuario,
     })),
-  ].map((item) => ({ ...item, tema: temaDoItem(item) }));
+  ].map(prepararItem);
 }
 
 app.get('/api/vitrine', wrap(async (req, res) => {
@@ -454,6 +491,9 @@ app.get('/api/vitrine', wrap(async (req, res) => {
   const tipo = ['laboratorio', 'equipamento'].includes(req.query.tipo) ? req.query.tipo : 'todos';
   const instituicao = String(req.query.instituicao || '').slice(0, 30).toUpperCase();
   const tema = String(req.query.tema || '').slice(0, 40);
+  const area = textoNormalizado(String(req.query.area || '').slice(0, 240));
+  const tecnica = textoNormalizado(String(req.query.tecnica || '').slice(0, 500));
+  const situacao = String(req.query.status || '');
   const busca = textoNormalizado(String(req.query.q || '').slice(0, 120));
   const limite = Math.min(500, Math.max(24, parseInt(req.query.limite, 10) || 120));
   const avisos = [];
@@ -468,11 +508,15 @@ app.get('/api/vitrine', wrap(async (req, res) => {
     }
   }
 
-  const todasInstituicoes = [...new Set(itens.map((i) => i.instituicao).filter(Boolean))].sort();
+  const baseDosFiltros = itens;
+  const todasInstituicoes = agregarInstituicoes(baseDosFiltros);
   itens = itens.filter((item) => {
     if (tipo !== 'todos' && item.tipo !== tipo) return false;
     if (instituicao && item.instituicao !== instituicao) return false;
     if (tema && item.tema !== tema) return false;
+    if (area && !(item.areas_lista || []).some((v) => textoNormalizado(v) === area)) return false;
+    if (tecnica && !(item.tecnicas_lista || []).some((v) => textoNormalizado(v) === tecnica)) return false;
+    if (situacao && item.status !== (situacao === 'inativo' ? 'I' : 'A')) return false;
     return !busca || textoNormalizado(textoBusca(item)).includes(busca);
   });
   itens.sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
@@ -504,11 +548,13 @@ app.get('/api/vitrine', wrap(async (req, res) => {
 
   res.json({
     total: itens.length, exibidos: Math.min(limite, itens.length), itens: itens.slice(0, limite), pontos,
+    instituicoes: agregarInstituicoes(itens),
     kpi: { ...totalPorTipo, fontes: Object.values(totalPorFonte).filter(Boolean).length,
       instituicoes: new Set(itens.map((i) => i.instituicao)).size },
     porFonte: totalPorFonte,
     filtros: { instituicoes: todasInstituicoes, temas: TEMAS.map(([valor, rotulo]) => ({ valor, rotulo }))
-      .concat({ valor: 'outros', rotulo: 'Outras áreas' }) },
+      .concat({ valor: 'outros', rotulo: 'Outras áreas' }), areas: opcoesFrequentes(baseDosFiltros, 'areas_lista'),
+      tecnicas: opcoesFrequentes(baseDosFiltros, 'tecnicas_lista') },
     avisos,
   });
 }));

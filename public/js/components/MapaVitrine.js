@@ -18,10 +18,10 @@ function MapaVitrine({ pontos }) {
       limites.push(posicao);
       L.circleMarker(posicao, {
         radius: Math.min(13, 6 + Math.log2(Math.max(1, ponto.total))),
-        color: ponto.fonte === 'vip' ? '#57269b' : '#087f8c',
+        color: ponto.fonte === 'vip' ? '#57269b' : ponto.fonte === 'pnipe' ? '#087f8c' : '#d97706',
         fillOpacity: 0.75,
         weight: 1.5,
-      }).addTo(instancia).bindPopup(`<strong>${String(ponto.nome).replace(/[<>]/g, '')}</strong><br>${ponto.instituicao} · ${ponto.total} registro(s) · ${ponto.fonte.toUpperCase()}`);
+      }).addTo(instancia).bindPopup(`<strong>${String(ponto.nome).replace(/[<>]/g, '')}</strong><br>${ponto.instituicao} · ${ponto.cidade || 'Bahia'}<br>${ponto.laboratorios} laboratório(s) · ${ponto.equipamentos} equipamento(s)<br>Fonte: ${ponto.fonte === 'ambas' ? 'VIP + PNIPE' : ponto.fonte.toUpperCase()}`);
     });
     if (limites.length) instancia.fitBounds(limites, { padding: [24, 24], maxZoom: 12 });
     window.setTimeout(() => instancia.invalidateSize(), 50);
@@ -32,8 +32,8 @@ function MapaVitrine({ pontos }) {
   return (
     <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
       <div className="flex flex-wrap items-end justify-between gap-3 border-b border-slate-200 p-4 sm:p-5">
-        <div><h2 className="text-xl font-bold text-slate-900">Distribuição territorial</h2><p className="mt-1 text-sm text-slate-500">{pontos.length} registros com coordenadas geográficas, atualizados conforme os filtros.</p></div>
-        <div className="flex gap-3 text-xs"><span className="font-semibold text-[#57269b]">● VIP</span><span className="font-semibold text-[#087f8c]">● PNIPE</span></div>
+        <div><p className="text-xs font-bold uppercase tracking-[0.14em] text-[#57269b]">Painel 4</p><h2 className="mt-1 text-2xl font-bold text-slate-900">Mapa da infraestrutura</h2><p className="mt-1 text-sm text-slate-500">{pontos.length} localidades atualizadas conforme os filtros, no mesmo padrão cartográfico do painel temático.</p></div>
+        <div className="flex gap-3 text-xs"><span className="font-semibold text-[#57269b]">● VIP</span><span className="font-semibold text-[#087f8c]">● PNIPE</span><span className="font-semibold text-amber-600">● Ambas</span></div>
       </div>
       <div ref={elemento} className="h-[32rem] w-full bg-slate-100" role="img" aria-label="Mapa da distribuição dos laboratórios e equipamentos" />
     </section>
