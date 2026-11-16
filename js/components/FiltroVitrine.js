@@ -34,10 +34,10 @@ function instituicaoObjeto(valor) {
 function IconeInstituicao({ sigla, selecionada }) {
   const paleta = ['#57269b', '#087f8c', '#1b5fbf', '#a23b72', '#166534', '#9a3412', '#334155', '#6d28d9'];
   const indice = [...String(sigla)].reduce((soma, letra) => soma + letra.charCodeAt(0), 0) % paleta.length;
-  const arquivos = { IFBA: 'ifba.png', UEFS: 'uefs.png', UESB: 'uesb.png', UESC: 'uesc.png', UFBA: 'ufba.png', UFSB: 'ufsb.png', UNEB: 'uneb.png' };
+  const arquivos = { IFBA: 'ifba.png', IFBAIANO: 'ifbaiano.png', UEFS: 'uefs.png', UESB: 'uesb.png', UESC: 'uesc.png', UFBA: 'ufba.png', UFSB: 'ufsb.png', UNEB: 'uneb.png' };
   const arquivo = arquivos[sigla];
-  return <span className={`relative flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl text-[10px] font-black tracking-tight text-white shadow-sm ${selecionada ? 'ring-2 ring-white ring-offset-2 ring-offset-[#57269b]' : ''}`}
-    style={{ background: paleta[indice] }}><span>{sigla.slice(0, 6)}</span>{arquivo && <img src={`${VIP_CONFIG.observatorioBase.replace(/\/$/, '')}/assets/instituicoes/${arquivo}`} alt="" className="absolute inset-0 h-full w-full bg-white object-contain p-1" onError={(e) => e.currentTarget.remove()} />}</span>;
+  return <span className={`relative flex h-12 w-12 items-center justify-center overflow-hidden rounded-xl text-[10px] font-black tracking-tight text-white shadow-sm ${selecionada ? 'ring-2 ring-white/90 ring-offset-2 ring-offset-[#57269b]' : ''}`}
+    style={{ background: paleta[indice] }}><span>{sigla.slice(0, 6)}</span>{arquivo && <img src={`assets/instituicoes/${arquivo}`} alt="" className="absolute inset-0 h-full w-full bg-white object-contain p-1" onError={(e) => e.currentTarget.remove()} />}</span>;
 }
 
 function FaixaInstituicoes({ valor, instituicoes, aoMudar }) {
@@ -50,14 +50,14 @@ function FaixaInstituicoes({ valor, instituicoes, aoMudar }) {
       </div>
       <div className="flex gap-2 overflow-x-auto pb-2">
         <button type="button" onClick={() => aoMudar('')} aria-pressed={!valor}
-          className={`flex min-w-[5.5rem] flex-col items-center gap-1.5 rounded-xl border px-2 py-2 text-xs font-semibold transition ${!valor ? 'border-[#57269b] bg-purple-50 text-[#57269b]' : 'border-slate-200 bg-white text-slate-600 hover:border-purple-200'}`}>
-          <IconeInstituicao sigla="BA" selecionada={!valor} /><span>Todas</span>
+          className={`flex min-h-[7.5rem] min-w-[7rem] flex-col items-center justify-center gap-1.5 rounded-2xl border px-2 py-2 text-center text-xs font-semibold transition ${!valor ? 'border-[#57269b] bg-[#57269b] text-white shadow-sm' : 'border-slate-200 bg-white text-slate-700 hover:border-purple-200'}`}>
+          <IconeInstituicao sigla="BA" selecionada={!valor} /><strong>Todas</strong><span className={`text-[10px] leading-tight ${!valor ? 'text-white/80' : 'text-slate-400'}`}>Instituições</span>
         </button>
         {itens.map((item) => {
           const selecionada = valor === item.sigla;
           return <button key={item.sigla} type="button" onClick={() => aoMudar(selecionada ? '' : item.sigla)} aria-pressed={selecionada} title={item.nome}
-            className={`flex min-w-[5.5rem] flex-col items-center gap-1.5 rounded-xl border px-2 py-2 text-xs font-semibold transition ${selecionada ? 'border-[#57269b] bg-purple-50 text-[#57269b]' : 'border-slate-200 bg-white text-slate-600 hover:border-purple-200'}`}>
-            <IconeInstituicao sigla={item.sigla} selecionada={selecionada} /><span>{item.sigla}</span>
+            className={`flex min-h-[7.5rem] min-w-[7rem] flex-col items-center justify-center gap-1.5 rounded-2xl border px-2 py-2 text-center text-xs font-semibold transition ${selecionada ? 'border-[#57269b] bg-[#57269b] text-white shadow-sm' : 'border-slate-200 bg-white text-slate-700 hover:border-purple-200'}`}>
+            <IconeInstituicao sigla={item.sigla} selecionada={selecionada} /><strong>{item.sigla}</strong><span className={`line-clamp-2 text-[10px] leading-tight ${selecionada ? 'text-white/80' : 'text-slate-400'}`}>{item.nome}</span>
           </button>;
         })}
       </div>
@@ -96,8 +96,11 @@ function FiltroVitrine({ filtros, opcoes, aoMudar, mostrarSituacao }) {
         </label>
       </div>
       <FaixaInstituicoes valor={filtros.instituicao} instituicoes={opcoes.instituicoes} aoMudar={(valor) => mudar('instituicao', valor)} />
-      <div className={`mt-4 grid gap-3 ${mostrarSituacao ? 'md:grid-cols-2 xl:grid-cols-4' : 'md:grid-cols-3'}`}>
-        <SeletorFiltro rotulo="Área temática" valor={filtros.tema} opcoes={opcoes.temas} placeholder="Todas as áreas temáticas" aoMudar={(valor) => mudar('tema', valor)} />
+      <div className="mt-4 border-t border-slate-100 pt-4">
+        <GrupoBotoes titulo="Filtre por grande área" valor={filtros.tema} aoMudar={(valor) => mudar('tema', valor)}
+          opcoes={[{ valor: '', rotulo: 'Todas as áreas' }, ...(opcoes.temas || [])]} />
+      </div>
+      <div className={`mt-4 grid gap-3 ${mostrarSituacao ? 'md:grid-cols-3' : 'md:grid-cols-2'}`}>
         <SeletorFiltro rotulo="Área de atuação" valor={filtros.area} opcoes={opcoes.areas} placeholder="Todas as áreas" aoMudar={(valor) => mudar('area', valor)} />
         <SeletorFiltro rotulo="Técnica principal" valor={filtros.tecnica} opcoes={opcoes.tecnicas} placeholder="Todas as técnicas" aoMudar={(valor) => mudar('tecnica', valor)} />
         {mostrarSituacao && <SeletorFiltro rotulo="Situação do equipamento" valor={filtros.status}
