@@ -496,6 +496,7 @@ app.get('/api/vitrine', wrap(async (req, res) => {
   const area = textoNormalizado(String(req.query.area || '').slice(0, 240));
   const tecnica = textoNormalizado(String(req.query.tecnica || '').slice(0, 500));
   const situacao = String(req.query.status || '');
+  const cidade = textoNormalizado(String(req.query.cidade || '').slice(0, 120));
   const busca = textoNormalizado(String(req.query.q || '').slice(0, 120));
   const limite = Math.min(500, Math.max(24, parseInt(req.query.limite, 10) || 120));
   const avisos = [];
@@ -519,6 +520,7 @@ app.get('/api/vitrine', wrap(async (req, res) => {
     if (area && !(item.areas_lista || []).some((v) => textoNormalizado(v) === area)) return false;
     if (tecnica && !(item.tecnicas_lista || []).some((v) => textoNormalizado(v) === tecnica)) return false;
     if (situacao && item.status !== (situacao === 'inativo' ? 'I' : 'A')) return false;
+    if (cidade && textoNormalizado(item.cidade) !== cidade) return false;
     return !busca || textoNormalizado(textoBusca(item)).includes(busca);
   });
   itens.sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
@@ -547,9 +549,19 @@ app.get('/api/vitrine', wrap(async (req, res) => {
   const pontos = [...pontosAgrupados.values()].map(({ fontes, ...ponto }) => ({
     ...ponto, fonte: fontes.size > 1 ? 'ambas' : [...fontes][0],
   }));
+  const municipiosPorNome = new Map();
+  itens.forEach((item) => {
+    if (!item.cidade) return;
+    const chave = textoNormalizado(item.cidade);
+    const atual = municipiosPorNome.get(chave) || { cidade: item.cidade, total: 0, laboratorios: 0, equipamentos: 0 };
+    atual.total += 1;
+    atual[item.tipo === 'laboratorio' ? 'laboratorios' : 'equipamentos'] += 1;
+    municipiosPorNome.set(chave, atual);
+  });
+  const municipios = [...municipiosPorNome.values()];
 
   res.json({
-    total: itens.length, exibidos: Math.min(limite, itens.length), itens: itens.slice(0, limite), pontos,
+    total: itens.length, exibidos: Math.min(limite, itens.length), itens: itens.slice(0, limite), pontos, municipios,
     instituicoes: agregarInstituicoes(itens),
     kpi: { ...totalPorTipo, fontes: Object.values(totalPorFonte).filter(Boolean).length,
       instituicoes: new Set(itens.map((i) => i.instituicao)).size },

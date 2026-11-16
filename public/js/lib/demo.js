@@ -181,6 +181,7 @@ Obs.demo = (function () {
     const area = normalizar(params.get('area') || '');
     const tecnica = normalizar(params.get('tecnica') || '');
     const situacao = params.get('status') || '';
+    const cidade = normalizar(params.get('cidade') || '');
     const busca = normalizar(params.get('q') || '');
     const limite = Math.min(500, Math.max(24, Number(params.get('limite')) || 180));
     const catalogo = await carregar();
@@ -193,6 +194,7 @@ Obs.demo = (function () {
       if (area && !item.areas_lista.some((v) => normalizar(v) === area)) return false;
       if (tecnica && !item.tecnicas_lista.some((v) => normalizar(v) === tecnica)) return false;
       if (situacao && item.status !== (situacao === 'inativo' ? 'I' : 'A')) return false;
+      if (cidade && normalizar(item.cidade) !== cidade) return false;
       return !busca || normalizar(textoBusca(item)).includes(busca);
     });
     itens.sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
@@ -210,10 +212,20 @@ Obs.demo = (function () {
       pontosPorLocal.set(chave, ponto);
     });
     const pontos = [...pontosPorLocal.values()].map(({ fontes, ...p }) => ({ ...p, fonte: fontes.size > 1 ? 'ambas' : [...fontes][0] }));
+    const municipiosPorNome = new Map();
+    itens.forEach((item) => {
+      if (!item.cidade) return;
+      const chave = normalizar(item.cidade);
+      const atual = municipiosPorNome.get(chave) || { cidade: item.cidade, total: 0, laboratorios: 0, equipamentos: 0 };
+      atual.total += 1;
+      atual[item.tipo === 'laboratorio' ? 'laboratorios' : 'equipamentos'] += 1;
+      municipiosPorNome.set(chave, atual);
+    });
+    const municipios = [...municipiosPorNome.values()];
     const laboratorios = itens.filter((i) => i.tipo === 'laboratorio').length;
     const equipamentos = itens.length - laboratorios;
     return {
-      total: itens.length, exibidos: Math.min(limite, itens.length), itens: itens.slice(0, limite), pontos,
+      total: itens.length, exibidos: Math.min(limite, itens.length), itens: itens.slice(0, limite), pontos, municipios,
       itemPorId: Object.fromEntries(itens.slice(0, limite).map((i) => [i.id, i])),
       instituicoes: agregarInstituicoes(itens),
       kpi: { laboratorios, equipamentos, fontes: new Set(itens.map((i) => i.fonte)).size, instituicoes: new Set(itens.map((i) => i.instituicao)).size },
