@@ -77,6 +77,12 @@ function App() {
     selecionarSecao('laboratorios');
   }
 
+  function abrirMunicipio(nome, secao) {
+    setFiltros((atuais) => ({ ...atuais, cidade: nome, ...(secao === 'laboratorios' ? { status: '' } : {}) }));
+    selecionarSecao(secao);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
   return (
     <div className="flex min-h-screen flex-col">
       <Header />
@@ -96,7 +102,7 @@ function App() {
               {!erro && secaoAtiva === 'laboratorios' && <SecaoVitrine dados={dados} carregando={carregando} aoAbrir={abrirItem} tipo="laboratorio" />}
               {!erro && secaoAtiva === 'equipamentos' && <SecaoVitrine dados={dados} carregando={carregando} aoAbrir={abrirItem} tipo="equipamento" />}
               {!erro && secaoAtiva === 'instituicoes' && <SecaoInstituicoes dados={dados} carregando={carregando} aoSelecionar={selecionarInstituicao} />}
-              {!erro && secaoAtiva === 'mapa' && (dados ? <MapaVitrine pontos={dados.pontos || []} /> : <p className="text-sm text-slate-500">Carregando mapa…</p>)}
+              {!erro && secaoAtiva === 'mapa' && (dados ? <MapaVitrine pontos={dados.pontos || []} municipios={dados.municipios || []} aoAbrirMunicipio={abrirMunicipio} /> : <p className="text-sm text-slate-500">Carregando mapa…</p>)}
             </main>
           </div>
         </>}

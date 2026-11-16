@@ -1,4 +1,4 @@
-const FILTROS_VITRINE_VAZIOS = { fonte: 'todos', instituicao: '', tema: '', area: '', tecnica: '', status: '', q: '' };
+const FILTROS_VITRINE_VAZIOS = { fonte: 'todos', instituicao: '', tema: '', area: '', tecnica: '', status: '', cidade: '', q: '' };
 
 function paramsDaVitrine(filtros, tipo = 'todos') {
   const params = new URLSearchParams();
@@ -96,6 +96,10 @@ function FiltroVitrine({ filtros, opcoes, aoMudar, mostrarSituacao }) {
         </label>
       </div>
       <FaixaInstituicoes valor={filtros.instituicao} instituicoes={opcoes.instituicoes} aoMudar={(valor) => mudar('instituicao', valor)} />
+      {filtros.cidade && <div className="mt-4 flex items-center gap-2 border-t border-slate-100 pt-4">
+        <span className="rounded-full bg-blue-50 px-3 py-1.5 text-sm font-semibold text-blue-800">Município: {filtros.cidade}</span>
+        <button type="button" onClick={() => mudar('cidade', '')} className="rounded-full px-2 py-1 text-sm font-bold text-slate-500 hover:bg-slate-100" aria-label={`Remover filtro do município ${filtros.cidade}`}>×</button>
+      </div>}
       <div className="mt-4 border-t border-slate-100 pt-4">
         <GrupoBotoes titulo="Filtre por grande área" valor={filtros.tema} aoMudar={(valor) => mudar('tema', valor)}
           opcoes={[{ valor: '', rotulo: 'Todas as áreas' }, ...(opcoes.temas || [])]} />

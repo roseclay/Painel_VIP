@@ -1,11 +1,12 @@
 // Mapa municipal adaptado do componente utilizado no eixo temático de Energia.
 // O contorno da Bahia é o mesmo; aqui a intensidade representa a quantidade de
 // laboratórios e equipamentos do VIP/PNIPE em cada município.
-function MapaVitrine({ pontos }) {
+function MapaVitrine({ pontos, municipios: resumoMunicipios, aoAbrirMunicipio }) {
   const { useEffect, useMemo, useRef, useState } = React;
   const [geojson, setGeojson] = useState(null);
   const [erro, setErro] = useState(null);
-  const [municipioAtivo, setMunicipioAtivo] = useState(null);
+  const [municipioSelecionado, setMunicipioSelecionado] = useState(null);
+  const [municipioEmFoco, setMunicipioEmFoco] = useState(null);
   const [visao, setVisao] = useState({ x: 0, y: 0, largura: 720, altura: 760 });
   const refSvg = useRef(null);
   const arraste = useRef(null);
@@ -78,8 +79,9 @@ function MapaVitrine({ pontos }) {
     }
 
     const porCidade = new Map();
-    for (const ponto of pontos || []) {
-      const chave = normalizar(ponto.cidade);
+    const baseMunicipios = resumoMunicipios?.length ? resumoMunicipios : (pontos || []);
+    for (const ponto of baseMunicipios) {
+      const chave = normalizar(ponto.cidade || ponto.nome);
       if (!chave) continue;
       const atual = porCidade.get(chave) || { total: 0, laboratorios: 0, equipamentos: 0 };
       atual.total += Number(ponto.total) || 0;
@@ -134,11 +136,12 @@ function MapaVitrine({ pontos }) {
       largura, altura, municipios, comInfraestrutura, maximo,
       totalRegistros: comInfraestrutura.reduce((soma, m) => soma + m.total, 0),
     };
-  }, [geojson, pontos]);
+  }, [geojson, pontos, resumoMunicipios]);
 
   if (erro) return <EstadoVazio titulo="Não foi possível carregar o mapa" descricao={erro} />;
   if (!mapa) return <EstadoVazio titulo="Carregando mapa da Bahia…" />;
 
+  const municipioAtivo = municipioEmFoco || municipioSelecionado;
   const nivelZoom = mapa.largura / visao.largura;
   function limitarVisao(proxima) {
     const largura = Math.max(mapa.largura / 8, Math.min(mapa.largura, proxima.largura));
@@ -213,14 +216,14 @@ function MapaVitrine({ pontos }) {
               return <path key={m.id} d={m.caminho} fill={corMunicipio(m.total)} fillRule="evenodd"
                 stroke={ativo ? '#0f172a' : '#ffffff'} strokeWidth={ativo ? 1.8 : 0.55} vectorEffect="non-scaling-stroke"
                 tabIndex={m.total ? 0 : undefined} className={m.total ? 'cursor-pointer transition-opacity hover:opacity-75 focus:outline-none' : ''}
-                aria-label={`${m.nome}: ${m.total} registros`} onMouseEnter={() => setMunicipioAtivo(m)} onMouseLeave={() => setMunicipioAtivo(null)}
-                onFocus={() => setMunicipioAtivo(m)} onBlur={() => setMunicipioAtivo(null)} onClick={() => m.total && setMunicipioAtivo(m)}>
+                aria-label={`${m.nome}: ${m.total} registros`} onMouseEnter={() => m.total && setMunicipioEmFoco(m)} onMouseLeave={() => m.total && setMunicipioEmFoco(null)}
+                onFocus={() => m.total && setMunicipioEmFoco(m)} onBlur={() => m.total && setMunicipioEmFoco(null)} onClick={() => m.total && setMunicipioSelecionado(m)}>
                 <title>{`${m.nome} — ${m.territorio} — ${m.total} registros`}</title>
               </path>;
             })}
             <g aria-label="Municípios com infraestrutura">
               {[...mapa.comInfraestrutura].reverse().map((m) => <g key={`rotulo-${m.id}`} className="cursor-pointer"
-                onMouseEnter={() => setMunicipioAtivo(m)} onMouseLeave={() => setMunicipioAtivo(null)} onClick={() => setMunicipioAtivo(m)}>
+                onMouseEnter={() => setMunicipioEmFoco(m)} onMouseLeave={() => setMunicipioEmFoco(null)} onClick={() => setMunicipioSelecionado(m)}>
                 <line x1={m.centro.x} y1={m.centro.y} x2={m.rotulo.x + (m.rotulo.ancora === 'start' ? -2 : 2)} y2={m.rotulo.y - 3} stroke="#475569" strokeWidth="0.8" vectorEffect="non-scaling-stroke" />
                 <circle cx={m.centro.x} cy={m.centro.y} r="3.2" fill="#0f172a" stroke="#fff" strokeWidth="1.4" vectorEffect="non-scaling-stroke" />
                 <text x={m.rotulo.x} y={m.rotulo.y} textAnchor={m.rotulo.ancora} fill="#0f172a" stroke="#fff" strokeWidth="3" paintOrder="stroke" strokeLinejoin="round" className="text-[10px] font-semibold">{m.nome}</text>
@@ -231,7 +234,11 @@ function MapaVitrine({ pontos }) {
         <aside>
           <div className="mb-4 min-h-24 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
             <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Município</p>
-            {municipioAtivo ? <><p className="mt-1 font-semibold text-slate-900">{municipioAtivo.nome}</p><p className="text-sm text-slate-600">{municipioAtivo.territorio}</p><p className="mt-1 text-sm font-medium text-blue-800">{Obs.formato.numero(municipioAtivo.laboratorios)} laboratórios · {Obs.formato.numero(municipioAtivo.equipamentos)} equipamentos</p></>
+            {municipioAtivo ? <><p className="mt-1 font-semibold text-slate-900">{municipioAtivo.nome}</p><p className="text-sm text-slate-600">{municipioAtivo.territorio}</p><p className="mt-1 text-sm font-medium text-blue-800">{Obs.formato.numero(municipioAtivo.laboratorios)} laboratórios · {Obs.formato.numero(municipioAtivo.equipamentos)} equipamentos</p>
+              <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-1">
+                <button type="button" disabled={!municipioAtivo.laboratorios} onClick={() => aoAbrirMunicipio?.(municipioAtivo.nome, 'laboratorios')} className="rounded-lg bg-[#57269b] px-3 py-2 text-xs font-bold text-white hover:bg-[#451d7d] disabled:cursor-not-allowed disabled:opacity-40">Ver laboratórios ({Obs.formato.numero(municipioAtivo.laboratorios)})</button>
+                <button type="button" disabled={!municipioAtivo.equipamentos} onClick={() => aoAbrirMunicipio?.(municipioAtivo.nome, 'equipamentos')} className="rounded-lg border border-[#57269b] bg-white px-3 py-2 text-xs font-bold text-[#57269b] hover:bg-purple-50 disabled:cursor-not-allowed disabled:opacity-40">Ver equipamentos ({Obs.formato.numero(municipioAtivo.equipamentos)})</button>
+              </div></>
               : <p className="mt-1 text-sm text-slate-600">Passe o cursor ou toque em um município.</p>}
           </div>
           <h3 className="mb-2 text-sm font-semibold text-slate-700">Quantidade de registros</h3>
@@ -239,7 +246,7 @@ function MapaVitrine({ pontos }) {
           <div className="mt-1 flex justify-between text-xs text-slate-500"><span>1</span><span>{Obs.formato.numero(mapa.maximo)}</span></div>
           <p className="mt-2 flex items-center gap-2 text-xs text-slate-500"><span className="h-3 w-3 rounded-sm border border-slate-300 bg-slate-200" /> Sem registros</p>
           <h3 className="mb-2 mt-5 text-sm font-semibold text-slate-700">Municípios com mais infraestrutura</h3>
-          <ol className="space-y-1.5">{mapa.comInfraestrutura.slice(0, 10).map((m, i) => <li key={m.id}><button type="button" onClick={() => setMunicipioAtivo(m)} onMouseEnter={() => setMunicipioAtivo(m)} className="flex w-full items-center gap-2 rounded-md px-2 py-1 text-left text-xs text-slate-700 hover:bg-slate-50"><span className="w-5 text-right text-slate-400">{i + 1}</span><span className="min-w-0 flex-1 truncate">{m.nome}</span><span className="font-semibold text-slate-900">{Obs.formato.numero(m.total)}</span></button></li>)}</ol>
+          <ol className="space-y-1.5">{mapa.comInfraestrutura.slice(0, 10).map((m, i) => <li key={m.id}><button type="button" onClick={() => setMunicipioSelecionado(m)} onMouseEnter={() => setMunicipioEmFoco(m)} onMouseLeave={() => setMunicipioEmFoco(null)} className="flex w-full items-center gap-2 rounded-md px-2 py-1 text-left text-xs text-slate-700 hover:bg-slate-50"><span className="w-5 text-right text-slate-400">{i + 1}</span><span className="min-w-0 flex-1 truncate">{m.nome}</span><span className="font-semibold text-slate-900">{Obs.formato.numero(m.total)}</span></button></li>)}</ol>
         </aside>
       </div>
     </section>
