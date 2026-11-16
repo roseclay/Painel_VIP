@@ -3,14 +3,19 @@
 window.Obs = window.Obs || {};
 
 Obs.demo = (function () {
+  // Grandes áreas apresentadas no mesmo vocabulário do painel da SNCT.
+  // A classificação é derivada dos textos de área, técnica e descrição
+  // porque VIP e PNIPE não usam uma taxonomia única neste campo.
   const temas = [
-    ['biologia', 'Biologia e biodiversidade', /biolog|biodivers|ecolog|bot[aâ]nic|zoolog|fauna|flora|ambient/i],
-    ['saude', 'Saúde e ciências da vida', /sa[uú]de|medic|farm[aá]|odont|enferm|epidemi|imun|bioqu[ií]m/i],
-    ['agro', 'Ciências agrárias', /agr[aá]r|agro|agric|solo|animal|veterin|alimento|pesca|aquic/i],
-    ['engenharia', 'Engenharia e tecnologia', /engenh|tecnolog|computa|rob[oó]t|automa|materia|ind[uú]str|constru/i],
-    ['energia', 'Energia e sustentabilidade', /energia|solar|e[oó]lic|sustent|combust|petr[oó]leo|g[aá]s|carbono/i],
-    ['exatas', 'Ciências exatas e da Terra', /qu[ií]mic|f[ií]sic|matem[aá]t|geolog|geof[ií]sic|ocean|meteor/i],
-    ['humanas', 'Humanidades e ciências sociais', /human|sociais|educa|hist[oó]r|cultur|arte|m[uú]sic|lingu|direito|econom/i],
+    ['agrarias', 'Ciências Agrárias', /agr[aá]r|agro|agric|solo|animal|veterin|alimento|pesca|aquic|zootec/i],
+    ['biologicas', 'Ciências Biológicas', /biolog|biodivers|ecolog|bot[aâ]nic|zoolog|fauna|flora|gen[eé]tic|microbiol/i],
+    ['saude', 'Ciências da Saúde', /sa[uú]de|medic|farm[aá]|odont|enferm|epidemi|imun|fisiolog|nutri/i],
+    ['exatas', 'Ciências Exatas e da Terra', /qu[ií]mic|f[ií]sic|matem[aá]t|geolog|geof[ií]sic|ocean|meteor|estat[ií]st/i],
+    ['humanas', 'Ciências Humanas', /human|educa|hist[oó]r|filosof|sociolog|antropolog|psicolog|geograf/i],
+    ['sociais', 'Ciências Sociais Aplicadas', /direito|econom|administra|comunica|arquitet|urban|planejamento|turismo/i],
+    ['engenharias', 'Engenharias', /engenh|tecnolog|computa|rob[oó]t|automa|materia|ind[uú]str|constru|energia|solar|e[oó]lic|petr[oó]leo|g[aá]s/i],
+    ['letras_artes', 'Linguística, Letras e Artes', /lingu[ií]st|letras|literat|arte|m[uú]sic|design|voz|performance/i],
+    ['multidisciplinar', 'Multidisciplinar', /multidisciplin|interdisciplin|sustent|ambient/i],
   ];
   let cache;
   const normalizar = (s) => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
@@ -20,10 +25,50 @@ Obs.demo = (function () {
   const tema = (item) => temas.find(([, , re]) => re.test(textoBusca(item)))?.[0] || 'outros';
   const status = (valor) => valor === false || /^(i|inativo|false|0)$/i.test(String(valor || '')) ? 'I' : 'A';
 
+  const palavrasLigacao = new Set(['de', 'da', 'do', 'das', 'dos', 'e']);
+  function tokensDoNome(nome) {
+    return normalizar(nome).replace(/[^a-z0-9 ]/g, ' ').split(/\s+/)
+      .filter((token) => token && !palavrasLigacao.has(token));
+  }
+
+  function pontuacaoNome(origem, candidato) {
+    const a = tokensDoNome(origem);
+    const b = tokensDoNome(candidato);
+    if (!a.length || !b.length) return 0;
+    const usados = new Set();
+    let correspondencias = 0;
+    for (const token of a) {
+      const indice = b.findIndex((outro, i) => !usados.has(i) && (
+        token === outro || (token.length === 1 && outro[0] === token) || (outro.length === 1 && token[0] === outro)
+      ));
+      if (indice >= 0) {
+        usados.add(indice);
+        correspondencias += 1;
+      }
+    }
+    const primeiroCompativel = a[0] === b[0] || (a[0][0] === b[0][0] && Math.min(a[0].length, b[0].length) <= 2);
+    const ultimoCompativel = a[a.length - 1] === b[b.length - 1];
+    if (!primeiroCompativel || !ultimoCompativel || correspondencias < 2) return 0;
+    return 0.55 * (correspondencias / Math.max(a.length, b.length))
+      + 0.45 * (correspondencias / Math.min(a.length, b.length));
+  }
+
   function perfilDoContato(item, pesquisadores) {
     const nome = normalizar(item.contato);
     if (!nome) return item;
-    const pesquisador = pesquisadores.get(nome);
+    let pesquisador = pesquisadores.porNome.get(nome);
+    if (!pesquisador) {
+      const candidatos = pesquisadores.lista
+        .filter((p) => !item.instituicao || p.instituicao === item.instituicao)
+        .map((p) => ({ pesquisador: p, pontos: pontuacaoNome(item.contato, p.nome) }))
+        .sort((a, b) => b.pontos - a.pontos);
+      const melhor = candidatos[0];
+      const segundo = candidatos[1];
+      // Aceita somente correspondência forte, exclusiva e dentro da mesma instituição.
+      if (melhor?.pontos >= 0.75 && (!segundo || melhor.pontos - segundo.pontos >= 0.08)) {
+        pesquisador = melhor.pesquisador;
+      }
+    }
     if (!pesquisador) return item;
     return { ...item, pesquisador_id: pesquisador.id, pesquisador_nome: pesquisador.nome,
       pesquisador_foto: pesquisador.foto, pesquisador_instituicao: pesquisador.instituicao };
@@ -51,7 +96,10 @@ Obs.demo = (function () {
       pnipeResposta.json(), vipResposta.json(),
       pesquisadoresResposta?.ok ? pesquisadoresResposta.json() : Promise.resolve([]),
     ]);
-    const pesquisadores = new Map((pesquisadoresLista || []).map((p) => [normalizar(p.nome), p]));
+    const pesquisadores = {
+      lista: pesquisadoresLista || [],
+      porNome: new Map((pesquisadoresLista || []).map((p) => [normalizar(p.nome), p])),
+    };
     const labsPnipe = new Map(pnipe.laboratorios.map((l) => [String(l.id), l]));
     const contagemEquip = new Map();
     pnipe.equipamentos.forEach((e) => contagemEquip.set(String(e.lab), (contagemEquip.get(String(e.lab)) || 0) + 1));

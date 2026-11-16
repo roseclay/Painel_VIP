@@ -81,9 +81,11 @@ function PainelDetalhe({ item, aoVoltar }) {
           {item.contato && <p className="mt-3 font-bold text-slate-800">{item.contato}</p>}
           {item.telefone && <p className="mt-2 text-sm text-slate-600">📞 {item.telefone}</p>}
           {item.email && <p className="mt-1 break-all text-sm text-slate-600">✉ {item.email}</p>}
-          {perfilUrl && <a href={perfilUrl} target="_blank" rel="noopener noreferrer" className="mt-4 flex items-center gap-3 rounded-xl border border-purple-100 bg-white p-3 text-sm font-bold text-[#57269b] hover:border-purple-300">
+          {perfilUrl && <p className="mt-4 text-xs font-semibold uppercase tracking-wide text-slate-400">Contato identificado no Observatório</p>}
+          {perfilUrl && <a href={perfilUrl} target="_blank" rel="noopener noreferrer" className="mt-2 flex items-center gap-3 rounded-xl border border-purple-100 bg-white p-3 text-sm font-bold text-[#57269b] hover:border-purple-300">
             {fotoPesquisador ? <img src={fotoPesquisador} alt="" className="h-12 w-12 rounded-full bg-slate-100 object-cover" onError={(e) => e.currentTarget.remove()} /> : <span className="flex h-12 w-12 items-center justify-center rounded-full bg-purple-100">CT&I</span>}
-            <span>Conheça o perfil no Observatório →</span></a>}
+            <span><span className="block text-slate-800">{item.pesquisador_nome || item.contato}</span><span className="mt-0.5 block text-xs text-[#57269b]">Consultar perfil no Observatório →</span></span></a>}
+          {item.contato && !perfilUrl && <p className="mt-4 rounded-xl border border-slate-200 bg-white p-3 text-xs leading-relaxed text-slate-500">Nenhum perfil correspondente foi localizado automaticamente na base de pesquisadores do Observatório.</p>}
         </section>
         <section className="rounded-2xl border border-slate-200 p-5"><h3 className="text-lg font-bold text-slate-900">Solicitar contato</h3><p className="mb-4 mt-1 text-sm text-slate-500">Conte brevemente como pretende utilizar esta infraestrutura.</p><FormularioContato item={item} /></section>
       </aside>

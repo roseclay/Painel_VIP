@@ -371,13 +371,15 @@ app.get('/api/pnipe', wrap(async (req, res) => {
 // Catálogo público unificado. A origem continua identificada em cada item: os dados são
 // apresentados juntos, sem fingir que VIP e PNIPE são a mesma base.
 const TEMAS = [
-  ['biologia', 'Biologia e biodiversidade', /biolog|biodivers|ecolog|bot[aâ]nic|zoolog|fauna|flora|ambient/i],
-  ['saude', 'Saúde e ciências da vida', /sa[uú]de|medic|farm[aá]|odont|enferm|epidemi|imun|bioqu[ií]m/i],
-  ['agro', 'Ciências agrárias', /agr[aá]r|agro|agric|solo|animal|veterin|alimento|pesca|aquic/i],
-  ['engenharia', 'Engenharia e tecnologia', /engenh|tecnolog|computa|rob[oó]t|automa|materia|ind[uú]str|constru/i],
-  ['energia', 'Energia e sustentabilidade', /energia|solar|e[oó]lic|sustent|combust|petr[oó]leo|g[aá]s|carbono/i],
-  ['exatas', 'Ciências exatas e da Terra', /qu[ií]mic|f[ií]sic|matem[aá]t|geolog|geof[ií]sic|ocean|meteor/i],
-  ['humanas', 'Humanidades e ciências sociais', /human|sociais|educa|hist[oó]r|cultur|arte|m[uú]sic|lingu|direito|econom/i],
+  ['agrarias', 'Ciências Agrárias', /agr[aá]r|agro|agric|solo|animal|veterin|alimento|pesca|aquic|zootec/i],
+  ['biologicas', 'Ciências Biológicas', /biolog|biodivers|ecolog|bot[aâ]nic|zoolog|fauna|flora|gen[eé]tic|microbiol/i],
+  ['saude', 'Ciências da Saúde', /sa[uú]de|medic|farm[aá]|odont|enferm|epidemi|imun|fisiolog|nutri/i],
+  ['exatas', 'Ciências Exatas e da Terra', /qu[ií]mic|f[ií]sic|matem[aá]t|geolog|geof[ií]sic|ocean|meteor|estat[ií]st/i],
+  ['humanas', 'Ciências Humanas', /human|educa|hist[oó]r|filosof|sociolog|antropolog|psicolog|geograf/i],
+  ['sociais', 'Ciências Sociais Aplicadas', /direito|econom|administra|comunica|arquitet|urban|planejamento|turismo/i],
+  ['engenharias', 'Engenharias', /engenh|tecnolog|computa|rob[oó]t|automa|materia|ind[uú]str|constru|energia|solar|e[oó]lic|petr[oó]leo|g[aá]s/i],
+  ['letras_artes', 'Linguística, Letras e Artes', /lingu[ií]st|letras|literat|arte|m[uú]sic|design|voz|performance/i],
+  ['multidisciplinar', 'Multidisciplinar', /multidisciplin|interdisciplin|sustent|ambient/i],
 ];
 
 const textoBusca = (item) => [item.nome, item.sigla, item.instituicao, item.cidade, item.descricao,
