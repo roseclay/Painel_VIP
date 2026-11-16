@@ -1,8 +1,8 @@
-const FILTROS_VITRINE_VAZIOS = { fonte: 'todos', instituicao: '', tema: '', area: '', tecnica: '', status: '', cidade: '', q: '' };
+const FILTROS_VITRINE_VAZIOS = { fonte: 'todos', instituicao: '', tema: '', area: '', tecnica: '', status: '', cidade: '', laboratorio: '', laboratorioNome: '', q: '' };
 
 function paramsDaVitrine(filtros, tipo = 'todos') {
   const params = new URLSearchParams();
-  Object.entries(filtros).forEach(([chave, valor]) => valor && valor !== 'todos' && params.set(chave, valor));
+  Object.entries(filtros).forEach(([chave, valor]) => chave !== 'laboratorioNome' && valor && valor !== 'todos' && params.set(chave, valor));
   if (filtros.fonte && filtros.fonte !== 'todos') params.set('fonte', filtros.fonte);
   if (tipo && tipo !== 'todos') params.set('tipo', tipo);
   params.set('limite', '240');
@@ -99,6 +99,10 @@ function FiltroVitrine({ filtros, opcoes, aoMudar, mostrarSituacao }) {
       {filtros.cidade && <div className="mt-4 flex items-center gap-2 border-t border-slate-100 pt-4">
         <span className="rounded-full bg-blue-50 px-3 py-1.5 text-sm font-semibold text-blue-800">Município: {filtros.cidade}</span>
         <button type="button" onClick={() => mudar('cidade', '')} className="rounded-full px-2 py-1 text-sm font-bold text-slate-500 hover:bg-slate-100" aria-label={`Remover filtro do município ${filtros.cidade}`}>×</button>
+      </div>}
+      {filtros.laboratorio && <div className="mt-4 flex items-center gap-2 border-t border-slate-100 pt-4">
+        <span className="max-w-full truncate rounded-full bg-cyan-50 px-3 py-1.5 text-sm font-semibold text-cyan-800">Laboratório: {filtros.laboratorioNome || filtros.laboratorio}</span>
+        <button type="button" onClick={() => aoMudar({ ...filtros, laboratorio: '', laboratorioNome: '' })} className="rounded-full px-2 py-1 text-sm font-bold text-slate-500 hover:bg-slate-100" aria-label="Remover filtro do laboratório">×</button>
       </div>}
       <div className="mt-4 border-t border-slate-100 pt-4">
         <GrupoBotoes titulo="Filtre por grande área" valor={filtros.tema} aoMudar={(valor) => mudar('tema', valor)}

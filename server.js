@@ -395,15 +395,23 @@ function agregarInstituicoes(itens) {
   for (const item of itens) {
     if (!item.instituicao) continue;
     const atual = mapa.get(item.instituicao) || { sigla: item.instituicao, nome: item.instituicao_nome || item.instituicao,
-      laboratorios: 0, equipamentos: 0, vip: 0, pnipe: 0, cidades: new Set(), areas: new Map() };
+      laboratorios: 0, equipamentos: 0, vip: 0, pnipe: 0, cidades: new Set(), areas: new Map(), grandesAreas: new Map() };
     atual[item.tipo === 'laboratorio' ? 'laboratorios' : 'equipamentos']++;
     atual[item.fonte]++;
     if (item.cidade) atual.cidades.add(item.cidade);
     (item.areas_lista || []).forEach((area) => atual.areas.set(area, (atual.areas.get(area) || 0) + 1));
+    if (item.tipo === 'laboratorio') {
+      const valor = item.tema || 'outros';
+      const rotulo = TEMAS.find(([chave]) => chave === valor)?.[1] || 'Outras áreas';
+      const grandeArea = atual.grandesAreas.get(valor) || { valor, rotulo, total: 0 };
+      grandeArea.total += 1;
+      atual.grandesAreas.set(valor, grandeArea);
+    }
     mapa.set(item.instituicao, atual);
   }
-  return [...mapa.values()].map(({ cidades, areas, ...item }) => ({ ...item, cidades: [...cidades].sort(),
-    areas: [...areas].sort((a, b) => b[1] - a[1]).slice(0, 5).map(([area]) => area) })).sort((a, b) => a.sigla.localeCompare(b.sigla, 'pt-BR'));
+  return [...mapa.values()].map(({ cidades, areas, grandesAreas, ...item }) => ({ ...item, cidades: [...cidades].sort(),
+    areas: [...areas].sort((a, b) => b[1] - a[1]).slice(0, 5).map(([area]) => area),
+    temas: [...grandesAreas.values()].sort((a, b) => b.total - a.total || a.rotulo.localeCompare(b.rotulo, 'pt-BR')) })).sort((a, b) => a.sigla.localeCompare(b.sigla, 'pt-BR'));
 }
 
 function opcoesFrequentes(itens, chave, limite = 160) {
@@ -422,6 +430,7 @@ function catalogoPnipe() {
   const labs = new Map(pnipe.laboratorios.map((l) => [String(l.id), l]));
   const laboratorios = pnipe.laboratorios.map((l) => ({
     id: `pnipe:lab:${l.id}`, id_origem: String(l.id), fonte: 'pnipe', tipo: 'laboratorio',
+    laboratorio_id: String(l.id),
     nome: l.nome, sigla: l.sigla, instituicao: l.sigla_instituicao, instituicao_nome: l.instituicao_nome,
     cidade: l.cidade, estado: l.estado, descricao: l.descricao, areas: l.areas, tecnicas: l.tecnicas,
     compartilhado: l.compartilhado, compartilhamento: l.compartilhamento,
@@ -479,6 +488,7 @@ async function catalogoVip() {
   return [
     ...labs.recordset.map(({ foto_hash, ...l }) => ({
       ...l, id: `vip:lab:${l.id}`, id_origem: String(l.id), fonte: 'vip', tipo: 'laboratorio',
+      laboratorio_id: String(l.id),
       imagem: imgUrl('epf', foto_hash), compartilhado: !!l.multiusuario, status: 'A',
     })),
     ...equipamentos.recordset.map(({ foto_hash, ...e }) => ({
@@ -496,6 +506,7 @@ app.get('/api/vitrine', wrap(async (req, res) => {
   const area = textoNormalizado(String(req.query.area || '').slice(0, 240));
   const tecnica = textoNormalizado(String(req.query.tecnica || '').slice(0, 500));
   const situacao = String(req.query.status || '');
+  const laboratorio = String(req.query.laboratorio || '').slice(0, 120);
   const cidade = textoNormalizado(String(req.query.cidade || '').slice(0, 120));
   const busca = textoNormalizado(String(req.query.q || '').slice(0, 120));
   const limite = Math.min(500, Math.max(24, parseInt(req.query.limite, 10) || 120));
@@ -520,6 +531,7 @@ app.get('/api/vitrine', wrap(async (req, res) => {
     if (area && !(item.areas_lista || []).some((v) => textoNormalizado(v) === area)) return false;
     if (tecnica && !(item.tecnicas_lista || []).some((v) => textoNormalizado(v) === tecnica)) return false;
     if (situacao && item.status !== (situacao === 'inativo' ? 'I' : 'A')) return false;
+    if (laboratorio && String(item.laboratorio_id || '') !== laboratorio) return false;
     if (cidade && textoNormalizado(item.cidade) !== cidade) return false;
     return !busca || textoNormalizado(textoBusca(item)).includes(busca);
   });
