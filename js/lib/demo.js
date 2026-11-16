@@ -106,6 +106,7 @@ Obs.demo = (function () {
 
     const laboratoriosPnipe = pnipe.laboratorios.map((l) => preparar({
       id: `pnipe:lab:${l.id}`, id_origem: String(l.id), fonte: 'pnipe', tipo: 'laboratorio', status: 'A',
+      laboratorio_id: String(l.id),
       nome: l.nome, sigla: l.sigla, instituicao: l.sigla_instituicao, instituicao_nome: l.instituicao_nome,
       cidade: l.cidade, estado: l.estado, descricao: l.descricao, areas: l.areas, tecnicas: l.tecnicas,
       compartilhado: l.compartilhado, compartilhamento: l.compartilhamento,
@@ -133,7 +134,7 @@ Obs.demo = (function () {
     });
 
     const laboratoriosVip = vip.laboratorios.map((l) => preparar({
-      ...l, id: `vip:lab:${l.id}`, id_origem: String(l.id), fonte: 'vip', tipo: 'laboratorio',
+      ...l, id: `vip:lab:${l.id}`, id_origem: String(l.id), laboratorio_id: String(l.id), fonte: 'vip', tipo: 'laboratorio',
     }, pesquisadores));
     const equipamentosVip = vip.equipamentos.map((e) => preparar({
       ...e, id: `vip:equip:${e.id}`, id_origem: String(e.id), fonte: 'vip', tipo: 'equipamento',
@@ -159,17 +160,25 @@ Obs.demo = (function () {
       if (!item.instituicao) return;
       const atual = mapa.get(item.instituicao) || {
         sigla: item.instituicao, nome: item.instituicao_nome || item.instituicao,
-        laboratorios: 0, equipamentos: 0, vip: 0, pnipe: 0, cidades: new Set(), areas: new Map(),
+        laboratorios: 0, equipamentos: 0, vip: 0, pnipe: 0, cidades: new Set(), areas: new Map(), grandesAreas: new Map(),
       };
       atual[item.tipo === 'laboratorio' ? 'laboratorios' : 'equipamentos']++;
       atual[item.fonte]++;
       if (item.cidade) atual.cidades.add(item.cidade);
       (item.areas_lista || []).forEach((area) => atual.areas.set(area, (atual.areas.get(area) || 0) + 1));
+      if (item.tipo === 'laboratorio') {
+        const valor = item.tema || 'outros';
+        const rotulo = temas.find(([chave]) => chave === valor)?.[1] || 'Outras áreas';
+        const grandeArea = atual.grandesAreas.get(valor) || { valor, rotulo, total: 0 };
+        grandeArea.total += 1;
+        atual.grandesAreas.set(valor, grandeArea);
+      }
       mapa.set(item.instituicao, atual);
     });
-    return [...mapa.values()].map(({ cidades, areas, ...item }) => ({
+    return [...mapa.values()].map(({ cidades, areas, grandesAreas, ...item }) => ({
       ...item, cidades: [...cidades].sort(),
       areas: [...areas].sort((a, b) => b[1] - a[1]).slice(0, 5).map(([area]) => area),
+      temas: [...grandesAreas.values()].sort((a, b) => b.total - a.total || a.rotulo.localeCompare(b.rotulo, 'pt-BR')),
     })).sort((a, b) => a.sigla.localeCompare(b.sigla, 'pt-BR'));
   }
 
@@ -181,6 +190,7 @@ Obs.demo = (function () {
     const area = normalizar(params.get('area') || '');
     const tecnica = normalizar(params.get('tecnica') || '');
     const situacao = params.get('status') || '';
+    const laboratorio = params.get('laboratorio') || '';
     const cidade = normalizar(params.get('cidade') || '');
     const busca = normalizar(params.get('q') || '');
     const limite = Math.min(500, Math.max(24, Number(params.get('limite')) || 180));
@@ -194,6 +204,7 @@ Obs.demo = (function () {
       if (area && !item.areas_lista.some((v) => normalizar(v) === area)) return false;
       if (tecnica && !item.tecnicas_lista.some((v) => normalizar(v) === tecnica)) return false;
       if (situacao && item.status !== (situacao === 'inativo' ? 'I' : 'A')) return false;
+      if (laboratorio && String(item.laboratorio_id || '') !== laboratorio) return false;
       if (cidade && normalizar(item.cidade) !== cidade) return false;
       return !busca || normalizar(textoBusca(item)).includes(busca);
     });

@@ -40,7 +40,7 @@ function FormularioContato({ item }) {
   </form>;
 }
 
-function PainelDetalhe({ item, aoVoltar }) {
+function PainelDetalhe({ item, aoVoltar, aoVerEquipamentos }) {
   if (!item) return null;
   const baseObservatorio = VIP_CONFIG.observatorioBase.replace(/\/$/, '');
   const perfilUrl = item.pesquisador_id ? `${baseObservatorio}/perfil.html?id=${encodeURIComponent(item.pesquisador_id)}` : null;
@@ -74,7 +74,10 @@ function PainelDetalhe({ item, aoVoltar }) {
       <div className="space-y-7">
         <section><h3 className="text-lg font-bold text-slate-900">Informações técnicas</h3><dl className="mt-2">{campos.map(([rotulo, valor]) => <LinhaDetalhe key={rotulo} rotulo={rotulo} valor={valor} />)}</dl></section>
         <div className="grid gap-5 md:grid-cols-2"><Etiquetas titulo="Áreas de atuação" itens={item.areas_lista} /><Etiquetas titulo="Principais técnicas" itens={item.tecnicas_lista} cor="cyan" /></div>
-        {(item.url || item.website) && <a href={item.url || (/^https?:/i.test(item.website) ? item.website : `https://${item.website}`)} target="_blank" rel="noopener noreferrer" className="inline-flex rounded-xl border border-[#57269b] px-4 py-2.5 text-sm font-bold text-[#57269b] hover:bg-purple-50">Consultar registro de origem ↗</a>}
+        <div className="flex flex-wrap gap-3">
+          {item.tipo === 'laboratorio' && item.equipamentos > 0 && <button type="button" onClick={() => aoVerEquipamentos?.(item)} className="rounded-xl bg-[#57269b] px-4 py-2.5 text-sm font-bold text-white hover:bg-[#451d7d]">Ver equipamentos deste laboratório ({Obs.formato.numero(item.equipamentos)}) →</button>}
+          {(item.url || item.website) && <a href={item.url || (/^https?:/i.test(item.website) ? item.website : `https://${item.website}`)} target="_blank" rel="noopener noreferrer" className="inline-flex rounded-xl border border-[#57269b] px-4 py-2.5 text-sm font-bold text-[#57269b] hover:bg-purple-50">Consultar registro de origem ↗</a>}
+        </div>
       </div>
       <aside className="space-y-5">
         <section className="rounded-2xl bg-slate-50 p-5"><h3 className="text-lg font-bold text-slate-900">Contato</h3>
