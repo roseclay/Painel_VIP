@@ -3,6 +3,7 @@ const SECOES = [
   { chave: 'equipamentos', numero: '2', rotulo: 'Equipamentos' },
   { chave: 'instituicoes', numero: '3', rotulo: 'Instituições' },
   { chave: 'mapa', numero: '4', rotulo: 'Mapa' },
+  { chave: 'usuarios', numero: '5', rotulo: 'Usuários' },
 ];
 
 function secaoDoHash() {
@@ -32,6 +33,7 @@ function App() {
         }
       } else {
         setItemAberto(null);
+        setDados(null);
         setSecaoAtiva(secaoDoHash());
       }
     };
@@ -46,7 +48,8 @@ function App() {
     const atraso = window.setTimeout(() => {
       setCarregando(true);
       setErro(null);
-      Obs.api.obter('/api/vitrine', paramsDaVitrine(filtros, tipo))
+      const endpoint = secaoAtiva === 'usuarios' ? '/api/usuarios' : '/api/vitrine';
+      Obs.api.obter(endpoint, paramsDaVitrine(filtros, tipo))
         .then((resultado) => { if (!cancelado) setDados(resultado); })
         .catch((e) => { if (!cancelado) setErro(e.message); })
         .finally(() => { if (!cancelado) setCarregando(false); });
@@ -56,7 +59,10 @@ function App() {
 
   function selecionarSecao(chave) {
     setItemAberto(null);
-    if (chave !== 'equipamentos') setFiltros((atuais) => ({ ...atuais, status: '' }));
+    setDados(null);
+    setFiltros((atuais) => chave === 'usuarios'
+      ? { ...FILTROS_VITRINE_VAZIOS, fonte: atuais.fonte, instituicao: atuais.instituicao, q: atuais.q }
+      : { ...atuais, status: chave === 'equipamentos' ? atuais.status : '', papel: '' });
     window.location.hash = chave;
     setSecaoAtiva(chave);
   }
@@ -100,6 +106,16 @@ function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
+  function abrirLaboratorioDoUsuario(lab) {
+    setFiltros({ ...FILTROS_VITRINE_VAZIOS, fonte: lab.fonte, instituicao: lab.instituicao,
+      laboratorio: String(lab.id), laboratorioNome: lab.nome });
+    setItemAberto(null);
+    setDados(null);
+    window.location.hash = 'laboratorios';
+    setSecaoAtiva('laboratorios');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
   return (
     <div className="flex min-h-screen flex-col">
       <Header />
@@ -111,15 +127,16 @@ function App() {
         </div>
 
         {itemAberto ? <PainelDetalhe item={itemAberto} aoVoltar={voltarDoDetalhe} aoVerEquipamentos={abrirEquipamentosDoLaboratorio} /> : <>
-          <FiltroVitrine filtros={filtros} opcoes={dados?.filtros || {}} aoMudar={setFiltros} mostrarSituacao={secaoAtiva === 'equipamentos'} />
+          <FiltroVitrine filtros={filtros} opcoes={dados?.filtros || {}} aoMudar={setFiltros} mostrarSituacao={secaoAtiva === 'equipamentos'} modoUsuarios={secaoAtiva === 'usuarios'} />
           <div className="mt-6 grid min-w-0 grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[13.5rem_minmax(0,1fr)]">
             <MenuLateral secoes={SECOES} ativa={secaoAtiva} aoSelecionar={selecionarSecao} />
             <main className="min-w-0">
               {erro && <EstadoVazio titulo="Não foi possível consultar a vitrine." descricao={erro} />}
-              {!erro && secaoAtiva === 'laboratorios' && <SecaoVitrine dados={dados} carregando={carregando} aoAbrir={abrirItem} tipo="laboratorio" />}
-              {!erro && secaoAtiva === 'equipamentos' && <SecaoVitrine dados={dados} carregando={carregando} aoAbrir={abrirItem} tipo="equipamento" />}
-              {!erro && secaoAtiva === 'instituicoes' && <SecaoInstituicoes dados={dados} carregando={carregando} aoSelecionar={selecionarInstituicao} aoSelecionarArea={selecionarAreaDaInstituicao} />}
-              {!erro && secaoAtiva === 'mapa' && (dados ? <MapaVitrine pontos={dados.pontos || []} municipios={dados.municipios || []} aoAbrirMunicipio={abrirMunicipio} /> : <p className="text-sm text-slate-500">Carregando mapa…</p>)}
+              {!erro && secaoAtiva === 'laboratorios' && <SecaoVitrine dados={dados?.itens ? dados : null} carregando={carregando} aoAbrir={abrirItem} tipo="laboratorio" />}
+              {!erro && secaoAtiva === 'equipamentos' && <SecaoVitrine dados={dados?.itens ? dados : null} carregando={carregando} aoAbrir={abrirItem} tipo="equipamento" />}
+              {!erro && secaoAtiva === 'instituicoes' && <SecaoInstituicoes dados={dados?.instituicoes ? dados : null} carregando={carregando} aoSelecionar={selecionarInstituicao} aoSelecionarArea={selecionarAreaDaInstituicao} />}
+              {!erro && secaoAtiva === 'mapa' && (dados?.municipios ? <MapaVitrine pontos={dados.pontos || []} municipios={dados.municipios || []} aoAbrirMunicipio={abrirMunicipio} /> : <p className="text-sm text-slate-500">Carregando mapa…</p>)}
+              {!erro && secaoAtiva === 'usuarios' && <SecaoUsuarios dados={dados?.usuarios ? dados : null} carregando={carregando} aoAbrirLaboratorio={abrirLaboratorioDoUsuario} />}
             </main>
           </div>
         </>}

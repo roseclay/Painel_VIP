@@ -11,12 +11,13 @@ const saida = path.resolve(argumento('output', path.join(__dirname, '..', 'publi
 const pnipePath = path.resolve(argumento('pnipe', path.join(__dirname, '..', 'dados', 'pnipe.json')));
 const pesquisadoresPath = argumento('pesquisadores', '');
 const pesquisadoresSaida = path.resolve(argumento('pesquisadores-output', path.join(__dirname, '..', 'public', 'dados', 'pesquisadores.json')));
+const usuariosSaida = path.resolve(argumento('usuarios-output', path.join(__dirname, '..', 'public', 'dados', 'usuarios.json')));
 const imgBase = String(argumento('img-base', 'https://vip.uesc.br/storage/uesc')).replace(/\/$/, '');
 
 const tabelasNecessarias = new Set([
   'INS_Instituicao', 'CAM_Campus', 'LOC_Localizacao', 'TEPF_Tipo_EspFisico',
   'EPF_Espaco_Fisico', 'FAB_Fabricante', 'MAR_Marca', 'EQP_Equipamento',
-  'USU_Usuario', 'PES_Pessoa', 'EPFP_EspFisico_Pessoa',
+  'USU_Usuario', 'PES_Pessoa', 'UC_Usuario_Campus', 'EPFP_EspFisico_Pessoa',
   'EPFI_EspFisico_Imagem', 'EQPI_Equipamento_Imagem',
 ]);
 
@@ -225,12 +226,124 @@ function gerar() {
   };
   fs.mkdirSync(path.dirname(saida), { recursive: true });
   fs.writeFileSync(saida, `${JSON.stringify(publicacao)}\n`);
+
+  // Catálogo público e sanitizado de usuários. O painel precisa apenas do nome,
+  // papel, instituição e laboratórios vinculados; login, e-mail, telefone, CPF,
+  // senha e demais campos pessoais nunca entram neste arquivo.
+  const laboratoriosPorPessoa = new Map();
+  const coordenadoresVip = new Set();
+  const vincularLaboratorio = (pessoaId, laboratorio, coordenador = false) => {
+    if (!pessoaId || !laboratorio) return;
+    const chave = String(pessoaId);
+    if (!laboratoriosPorPessoa.has(chave)) laboratoriosPorPessoa.set(chave, new Map());
+    laboratoriosPorPessoa.get(chave).set(`vip:${laboratorio.id}`, {
+      id: String(laboratorio.id), fonte: 'vip', nome: laboratorio.nome,
+      instituicao: laboratorio.instituicao, cidade: laboratorio.cidade,
+    });
+    if (coordenador) coordenadoresVip.add(chave);
+  };
+  for (const epf of dados.EPF_Espaco_Fisico || []) {
+    const laboratorio = laboratoriosPorId.get(String(epf.epf_cd_espfisico));
+    const usuario = usuarios.get(String(epf.epf_cd_usuario_responsavel));
+    if (usuario) vincularLaboratorio(usuario.usu_cd_pessoa, laboratorio, true);
+  }
+  for (const vinculo of dados.EPFP_EspFisico_Pessoa || []) {
+    vincularLaboratorio(vinculo.epfp_cd_pessoa, laboratoriosPorId.get(String(vinculo.epfp_cd_epf)), vinculo.epfp_st_responsavel === 'S');
+  }
+
+  const vinculosCampusPorUsuario = new Map();
+  for (const vinculo of dados.UC_Usuario_Campus || []) {
+    if (vinculo.uc_status && vinculo.uc_status !== 'A') continue;
+    const chave = String(vinculo.uc_cd_usuario);
+    if (!vinculosCampusPorUsuario.has(chave)) vinculosCampusPorUsuario.set(chave, []);
+    vinculosCampusPorUsuario.get(chave).push(vinculo);
+  }
+  const instituicaoPublica = (instituicao) => instituicao && ({
+    sigla: texto(instituicao.ins_sg_instituicao), nome: texto(instituicao.ins_nm_nome),
+  });
+  const usuariosPublicos = [];
+  for (const usuario of dados.USU_Usuario || []) {
+    if (usuario.usu_status && usuario.usu_status !== 'A') continue;
+    const pessoa = pessoas.get(String(usuario.usu_cd_pessoa));
+    const nome = texto(pessoa?.pes_nm_pessoa);
+    if (!nome) continue;
+    if (['administrador geral'].includes(normalizar(nome))) continue;
+    const vinculos = vinculosCampusPorUsuario.get(String(usuario.usu_cd_usuario)) || [];
+    const instituicoesDoUsuario = new Map();
+    let coordenador = coordenadoresVip.has(String(usuario.usu_cd_pessoa));
+    for (const vinculo of vinculos) {
+      const campus = campi.get(String(vinculo.uc_cd_campus));
+      const instituicao = instituicaoPublica(instituicoes.get(String(campus?.cam_cd_instituicao)));
+      if (instituicao?.sigla) instituicoesDoUsuario.set(instituicao.sigla, instituicao);
+      if (String(vinculo.uc_cd_nivel) === '2') coordenador = true;
+    }
+    const labs = [...(laboratoriosPorPessoa.get(String(usuario.usu_cd_pessoa)) || new Map()).values()];
+    for (const lab of labs) {
+      if (!instituicoesDoUsuario.has(lab.instituicao)) {
+        const instituicao = [...instituicoes.values()].find((i) => texto(i.ins_sg_instituicao) === lab.instituicao);
+        const publica = instituicaoPublica(instituicao) || { sigla: lab.instituicao, nome: lab.instituicao };
+        instituicoesDoUsuario.set(publica.sigla, publica);
+      }
+    }
+    const instituicoesLista = [...instituicoesDoUsuario.values()].filter((i) => i.sigla);
+    if (!instituicoesLista.length) continue;
+    const perfil = pesquisadorPorNome.get(normalizar(nome));
+    usuariosPublicos.push({
+      id: `vip:${usuario.usu_cd_usuario}`, nome, fonte: 'vip', papel: coordenador ? 'coordenador' : 'usuario',
+      instituicao: instituicoesLista[0].sigla, instituicoes: instituicoesLista,
+      laboratorios: labs.sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR')),
+      pesquisador_id: perfil?.id || null, pesquisador_foto: perfil?.foto || null,
+    });
+  }
+
+  // No PNIPE, conforme a regra de negócio do projeto, o contato cadastrado é
+  // considerado coordenador do laboratório.
+  const usuariosPnipe = new Map();
+  const pnipe = JSON.parse(fs.readFileSync(pnipePath, 'utf8'));
+  for (const lab of pnipe.laboratorios || []) {
+    const nome = texto(lab.contato);
+    const sigla = texto(lab.sigla_instituicao);
+    if (!nome || !sigla) continue;
+    const chave = `${normalizar(nome)}|${normalizar(sigla)}`;
+    const atual = usuariosPnipe.get(chave) || {
+      id: `pnipe:${chave}`, nome, fonte: 'pnipe', papel: 'coordenador', instituicao: sigla,
+      instituicoes: [{ sigla, nome: texto(lab.instituicao_nome) || sigla }], laboratorios: [],
+    };
+    atual.laboratorios.push({ id: String(lab.id), fonte: 'pnipe', nome: texto(lab.nome), instituicao: sigla, cidade: texto(lab.cidade) });
+    usuariosPnipe.set(chave, atual);
+  }
+
+  const todosUsuarios = [...usuariosPublicos];
+  for (const pnipeUsuario of usuariosPnipe.values()) {
+    const existente = todosUsuarios.find((vipUsuario) => normalizar(vipUsuario.nome) === normalizar(pnipeUsuario.nome)
+      && vipUsuario.instituicoes.some((i) => i.sigla === pnipeUsuario.instituicao));
+    const perfil = pesquisadorPorNome.get(normalizar(pnipeUsuario.nome));
+    if (existente) {
+      existente.fonte = 'vip+pnipe';
+      existente.papel = 'coordenador';
+      existente.laboratorios.push(...pnipeUsuario.laboratorios);
+      existente.laboratorios.sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+      existente.pesquisador_id ||= perfil?.id || null;
+      existente.pesquisador_foto ||= perfil?.foto || null;
+    } else {
+      todosUsuarios.push({ ...pnipeUsuario, pesquisador_id: perfil?.id || null, pesquisador_foto: perfil?.foto || null,
+        laboratorios: pnipeUsuario.laboratorios.sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR')) });
+    }
+  }
+  todosUsuarios.sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+  fs.mkdirSync(path.dirname(usuariosSaida), { recursive: true });
+  fs.writeFileSync(usuariosSaida, `${JSON.stringify({
+    fonte: 'VIP + PNIPE (recorte público)', gerado_em: new Date().toISOString(),
+    privacidade: 'Somente nome, papel, instituição e laboratórios vinculados. Credenciais e dados de contato foram excluídos.',
+    usuarios: todosUsuarios,
+  })}\n`);
   console.log(JSON.stringify({
     saida, laboratorios: laboratorios.length, equipamentos: equipamentos.length,
     ativos: equipamentos.filter((e) => e.status === 'A').length,
     inativos: equipamentos.filter((e) => e.status === 'I').length,
     pesquisadores: pesquisadores.length,
     vinculos: [...laboratorios, ...equipamentos].filter((i) => i.pesquisador_id).length,
+    usuarios: todosUsuarios.length, usuariosSaida,
   }, null, 2));
 }
 

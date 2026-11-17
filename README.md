@@ -1,4 +1,4 @@
-# Painel_VIP — Vitrine tecnológica
+# Painel_VIP — Vitrine de infraestrutura de pesquisa
 
 Vitrine pública de infraestrutura de pesquisa que apresenta dados do VIP e do PNIPE/MCTI juntos ou separadamente, sempre identificando a fonte de cada registro.
 
@@ -37,7 +37,7 @@ node scripts/vip-sql-para-json.js `
   --pesquisadores C:\caminho\Observatorio_BTX\data\dados_simcc_completo.json
 ```
 
-O comando também gera um índice público mínimo de pesquisadores para vincular contatos da infraestrutura às fichas do Observatório.
+O comando também gera um índice público mínimo de pesquisadores para vincular contatos da infraestrutura às fichas do Observatório e `public/dados/usuarios.json`, contendo somente nome, papel, instituição e laboratórios vinculados. Credenciais e dados privados não são exportados.
 
 ## Estrutura
 

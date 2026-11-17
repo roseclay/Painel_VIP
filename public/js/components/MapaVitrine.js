@@ -132,8 +132,10 @@ function MapaVitrine({ pontos, municipios: resumoMunicipios, aoAbrirMunicipio })
       municipio.rotulo = { x: municipio.centro.x + escolhida.dx, y: municipio.centro.y + escolhida.dy, ancora: escolhida.ancora };
     }
     const comInfraestrutura = municipios.filter((m) => m.total > 0);
+    const comLaboratorios = municipios.filter((m) => m.laboratorios > 0)
+      .sort((a, b) => b.laboratorios - a.laboratorios || a.nome.localeCompare(b.nome, 'pt-BR'));
     return {
-      largura, altura, municipios, comInfraestrutura, maximo,
+      largura, altura, municipios, comInfraestrutura, comLaboratorios, maximo,
       totalRegistros: comInfraestrutura.reduce((soma, m) => soma + m.total, 0),
     };
   }, [geojson, pontos, resumoMunicipios]);
@@ -245,8 +247,8 @@ function MapaVitrine({ pontos, municipios: resumoMunicipios, aoAbrirMunicipio })
           <div className="h-3 rounded-full bg-gradient-to-r from-[#e6f0fd] to-[#0d366b]" aria-hidden="true" />
           <div className="mt-1 flex justify-between text-xs text-slate-500"><span>1</span><span>{Obs.formato.numero(mapa.maximo)}</span></div>
           <p className="mt-2 flex items-center gap-2 text-xs text-slate-500"><span className="h-3 w-3 rounded-sm border border-slate-300 bg-slate-200" /> Sem registros</p>
-          <h3 className="mb-2 mt-5 text-sm font-semibold text-slate-700">Municípios com mais infraestrutura</h3>
-          <ol className="space-y-1.5">{mapa.comInfraestrutura.slice(0, 10).map((m, i) => <li key={m.id}><button type="button" onClick={() => setMunicipioSelecionado(m)} onMouseEnter={() => setMunicipioEmFoco(m)} onMouseLeave={() => setMunicipioEmFoco(null)} className="flex w-full items-center gap-2 rounded-md px-2 py-1 text-left text-xs text-slate-700 hover:bg-slate-50"><span className="w-5 text-right text-slate-400">{i + 1}</span><span className="min-w-0 flex-1 truncate">{m.nome}</span><span className="font-semibold text-slate-900">{Obs.formato.numero(m.total)}</span></button></li>)}</ol>
+          <h3 className="mb-2 mt-5 text-sm font-semibold text-slate-700">Municípios com mais laboratórios</h3>
+          <ol className="space-y-1.5">{mapa.comLaboratorios.slice(0, 10).map((m, i) => <li key={m.id}><button type="button" onClick={() => setMunicipioSelecionado(m)} onMouseEnter={() => setMunicipioEmFoco(m)} onMouseLeave={() => setMunicipioEmFoco(null)} className="flex w-full items-center gap-2 rounded-md px-2 py-1 text-left text-xs text-slate-700 hover:bg-slate-50"><span className="w-5 text-right text-slate-400">{i + 1}</span><span className="min-w-0 flex-1 truncate">{m.nome}</span><span className="font-semibold text-slate-900">{Obs.formato.numero(m.laboratorios)}</span></button></li>)}</ol>
         </aside>
       </div>
     </section>

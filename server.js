@@ -585,6 +585,43 @@ app.get('/api/vitrine', wrap(async (req, res) => {
   });
 }));
 
+// Índice sanitizado para o painel de usuários. O arquivo é produzido a partir
+// do backup do VIP e dos contatos do PNIPE sem credenciais nem dados de contato.
+app.get('/api/usuarios', wrap(async (req, res) => {
+  const arquivo = path.join(__dirname, 'public', 'dados', 'usuarios.json');
+  if (!fs.existsSync(arquivo)) return res.status(404).json({ erro: 'O índice público de usuários ainda não foi gerado.' });
+  const fonte = ['vip', 'pnipe'].includes(req.query.fonte) ? req.query.fonte : 'todos';
+  const instituicao = String(req.query.instituicao || '').slice(0, 30).toUpperCase();
+  const papel = ['coordenador', 'usuario'].includes(req.query.papel) ? req.query.papel : '';
+  const busca = textoNormalizado(String(req.query.q || '').slice(0, 120));
+  const limite = Math.min(500, Math.max(24, parseInt(req.query.limite, 10) || 240));
+  const usuarios = JSON.parse(fs.readFileSync(arquivo, 'utf8')).usuarios || [];
+  const daFonte = fonte === 'todos' ? usuarios : usuarios.filter((usuario) => String(usuario.fonte).split('+').includes(fonte));
+  const instituicoes = new Map();
+  daFonte.forEach((usuario) => (usuario.instituicoes || []).forEach((item) => {
+    const atual = instituicoes.get(item.sigla) || { sigla: item.sigla, nome: item.nome || item.sigla, usuarios: 0 };
+    atual.usuarios += 1;
+    instituicoes.set(item.sigla, atual);
+  }));
+  const filtrados = daFonte.filter((usuario) => {
+    if (instituicao && !(usuario.instituicoes || []).some((item) => item.sigla === instituicao)) return false;
+    if (papel && usuario.papel !== papel) return false;
+    if (!busca) return true;
+    return textoNormalizado([usuario.nome, ...(usuario.instituicoes || []).flatMap((i) => [i.sigla, i.nome]),
+      ...(usuario.laboratorios || []).map((lab) => lab.nome)].filter(Boolean).join(' ')).includes(busca);
+  }).sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+  res.json({
+    total: filtrados.length, exibidos: Math.min(limite, filtrados.length), usuarios: filtrados.slice(0, limite),
+    filtros: { instituicoes: [...instituicoes.values()].sort((a, b) => a.sigla.localeCompare(b.sigla, 'pt-BR')) },
+    kpi: {
+      usuarios: filtrados.filter((u) => u.papel === 'usuario').length,
+      coordenadores: filtrados.filter((u) => u.papel === 'coordenador').length,
+      laboratorios: new Set(filtrados.flatMap((u) => (u.laboratorios || []).map((lab) => `${lab.fonte}:${lab.id}`))).size,
+      instituicoes: new Set(filtrados.flatMap((u) => (u.instituicoes || []).map((i) => i.sigla))).size,
+    },
+  });
+}));
+
 // Busca de laboratórios
 app.get('/api/labs', wrap(async (req, res) => {
   const r = (await getPool()).request();
