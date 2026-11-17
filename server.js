@@ -470,6 +470,8 @@ async function catalogoVip() {
       (SELECT TOP 1 m.epfi_nm_hash FROM EPFI_EspFisico_Imagem m WHERE m.epfi_cd_epf = e.epf_cd_espfisico AND m.epfi_status = 'A' ORDER BY m.epfi_cd_img) foto_hash,
       (SELECT TOP 1 p.pes_nm_pessoa FROM USU_Usuario u JOIN PES_Pessoa p ON p.pes_cd_pessoa = u.usu_cd_pessoa
         WHERE u.usu_cd_usuario = e.epf_cd_usuario_responsavel) contato
+      ,(SELECT TOP 1 p.pes_lattes FROM USU_Usuario u JOIN PES_Pessoa p ON p.pes_cd_pessoa = u.usu_cd_pessoa
+        WHERE u.usu_cd_usuario = e.epf_cd_usuario_responsavel) lattes
       ${LAB_BASE}`),
     pool.request().query(`SELECT q.eqp_cd_equipamento id, q.eqp_nm_equipamento nome, q.eqp_sigla sigla,
       q.eqp_outras_denominacoes denominacoes, q.eqp_ds_modelo modelo, q.eqp_ds_descricao descricao, q.eqp_status status,
@@ -482,6 +484,8 @@ async function catalogoVip() {
       (SELECT TOP 1 m.eqpi_nm_hash FROM EQPI_Equipamento_Imagem m WHERE m.eqpi_cd_eqp = q.eqp_cd_equipamento AND m.eqpi_status = 'A' ORDER BY m.eqpi_cd_img) foto_hash,
       (SELECT TOP 1 p.pes_nm_pessoa FROM USU_Usuario u JOIN PES_Pessoa p ON p.pes_cd_pessoa = u.usu_cd_pessoa
         WHERE u.usu_cd_usuario = e.epf_cd_usuario_responsavel) contato
+      ,(SELECT TOP 1 p.pes_lattes FROM USU_Usuario u JOIN PES_Pessoa p ON p.pes_cd_pessoa = u.usu_cd_pessoa
+        WHERE u.usu_cd_usuario = e.epf_cd_usuario_responsavel) lattes
       ${LAB_BASE.replace('WHERE', `JOIN EQP_Equipamento q ON q.eqp_cd_espaco_fisico = e.epf_cd_espfisico
         LEFT JOIN FAB_Fabricante f ON f.fab_cd_fabricante = q.eqp_cd_fabricante WHERE`)}`),
   ]);

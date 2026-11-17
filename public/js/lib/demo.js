@@ -25,6 +25,7 @@ Obs.demo = (function () {
     i.areas, i.tecnicas, i.modelo, i.marca, i.laboratorio, i.contato, i.denominacoes].filter(Boolean).join(' ');
   const tema = (item) => temas.find(([, , re]) => re.test(textoBusca(item)))?.[0] || 'outros';
   const status = (valor) => valor === false || /^(i|inativo|false|0)$/i.test(String(valor || '')) ? 'I' : 'A';
+  const arquivoDados = (caminho) => `${caminho}?v=${encodeURIComponent(VIP_CONFIG.versaoDados || '1')}`;
 
   const palavrasLigacao = new Set(['de', 'da', 'do', 'das', 'dos', 'e']);
   function tokensDoNome(nome) {
@@ -71,7 +72,7 @@ Obs.demo = (function () {
       }
     }
     if (!pesquisador) return item;
-    return { ...item, pesquisador_id: pesquisador.id, pesquisador_nome: pesquisador.nome,
+    return { ...item, pesquisador_id: pesquisador.id, pesquisador_lattes_id: pesquisador.lattes_id, pesquisador_nome: pesquisador.nome,
       pesquisador_foto: pesquisador.foto, pesquisador_instituicao: pesquisador.instituicao };
   }
 
@@ -89,7 +90,7 @@ Obs.demo = (function () {
   async function carregar() {
     if (cache) return cache;
     const [pnipeResposta, vipResposta, pesquisadoresResposta] = await Promise.all([
-      fetch('dados/pnipe.json'), fetch('dados/vip.json'), fetch('dados/pesquisadores.json').catch(() => null),
+      fetch(arquivoDados('dados/pnipe.json')), fetch(arquivoDados('dados/vip.json')), fetch(arquivoDados('dados/pesquisadores.json')).catch(() => null),
     ]);
     if (!pnipeResposta.ok) throw new Error('Não foi possível carregar os dados do PNIPE.');
     if (!vipResposta.ok) throw new Error('Não foi possível carregar os dados do VIP.');
@@ -253,7 +254,7 @@ Obs.demo = (function () {
 
   async function carregarUsuarios() {
     if (cacheUsuarios) return cacheUsuarios;
-    const resposta = await fetch('dados/usuarios.json');
+    const resposta = await fetch(arquivoDados('dados/usuarios.json'));
     if (!resposta.ok) throw new Error('Não foi possível carregar os usuários da vitrine.');
     cacheUsuarios = (await resposta.json()).usuarios || [];
     return cacheUsuarios;

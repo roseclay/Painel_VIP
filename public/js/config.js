@@ -3,8 +3,10 @@ window.VIP_CONFIG = {
   nomePainel: 'Observatório de CT&I da Bahia',
   titulo: 'Vitrine de infraestrutura de pesquisa',
   textoRodape: 'Infraestrutura de pesquisa reunida a partir do VIP e da Plataforma Nacional de Infraestrutura de Pesquisa (PNIPE/MCTI).',
-  // Perfis e fotografias públicos do painel da SNCT no Observatório.
-  observatorioBase: 'https://observatoriocti.secti.ba.gov.br/snct',
+  // Perfis oficiais do Observatório usam o identificador Lattes.
+  observatorioBase: 'https://observatoriocti.secti.ba.gov.br/simcc',
+  observatorioFotosBase: 'https://observatoriocti.secti.ba.gov.br/snct',
+  versaoDados: '20261117c',
   // Vazio = mesma origem do servidor Node que serve esta página.
   apiBase: '',
 };

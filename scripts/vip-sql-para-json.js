@@ -85,6 +85,7 @@ const numero = (valor) => {
   const n = Number(valor);
   return Number.isFinite(n) ? n : null;
 };
+const lattesId = (valor) => (String(valor || '').match(/\d{10,}/) || [])[0] || null;
 const normalizar = (valor) => String(valor || '').normalize('NFD')
   .replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
 const indexar = (linhas, chave) => new Map((linhas || []).map((linha) => [String(linha[chave]), linha]));
@@ -98,7 +99,7 @@ function pesquisadoresPublicos() {
   const linhas = Array.isArray(fonte) ? fonte : (fonte.data || []);
   const publicos = linhas.map((p) => ({
     id: texto(p.id), nome: texto(p.name || p.nome), instituicao: texto(p['SIGLA IA'] || p.instituicao),
-    cidade: texto(p.city || p.cidade),
+    cidade: texto(p.city || p.cidade), lattes_id: texto(p.lattes_id || p.lattes_10_id),
     foto: p.id && fs.existsSync(path.join(raizPesquisadores, 'assets', 'carousel', `${p.id}.webp`)) ? `assets/carousel/${p.id}.webp` : null,
   })).filter((p) => p.id && p.nome);
   fs.mkdirSync(path.dirname(pesquisadoresSaida), { recursive: true });
@@ -192,6 +193,7 @@ function gerar() {
       contato: c.responsavel.nome, telefone: texto(epf.epf_tel_contato) || c.responsavel.telefone,
       email: c.responsavel.email || texto(c.campus.cam_email), website: texto(epf.epf_website), lattes: c.responsavel.lattes,
       pesquisador_id: c.perfil?.id || null, pesquisador_nome: c.perfil?.nome || null,
+      pesquisador_lattes_id: c.perfil?.lattes_id || lattesId(c.responsavel.lattes),
       imagem: foto?.epfi_nm_hash ? `${imgBase}/epf/${encodeURIComponent(foto.epfi_nm_hash)}` : null,
       equipamentos: (equipamentosPorLab.get(String(epf.epf_cd_espfisico)) || []).length,
     };
@@ -215,6 +217,7 @@ function gerar() {
       areas: lab.areas, tecnicas: lab.tecnicas, compartilhado: lab.compartilhado,
       contato: lab.contato, telefone: lab.telefone, email: lab.email, lattes: lab.lattes,
       pesquisador_id: lab.pesquisador_id, pesquisador_nome: lab.pesquisador_nome,
+      pesquisador_lattes_id: lab.pesquisador_lattes_id,
       imagem: foto?.eqpi_nm_hash ? `${imgBase}/eqp/${encodeURIComponent(foto.eqpi_nm_hash)}` : null,
     };
   }).filter((eqp) => eqp.nome);
@@ -292,7 +295,7 @@ function gerar() {
       id: `vip:${usuario.usu_cd_usuario}`, nome, fonte: 'vip', papel: coordenador ? 'coordenador' : 'usuario',
       instituicao: instituicoesLista[0].sigla, instituicoes: instituicoesLista,
       laboratorios: labs.sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR')),
-      pesquisador_id: perfil?.id || null, pesquisador_foto: perfil?.foto || null,
+      pesquisador_id: perfil?.id || null, pesquisador_lattes_id: perfil?.lattes_id || null, pesquisador_foto: perfil?.foto || null,
     });
   }
 
@@ -324,9 +327,10 @@ function gerar() {
       existente.laboratorios.push(...pnipeUsuario.laboratorios);
       existente.laboratorios.sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
       existente.pesquisador_id ||= perfil?.id || null;
+      existente.pesquisador_lattes_id ||= perfil?.lattes_id || null;
       existente.pesquisador_foto ||= perfil?.foto || null;
     } else {
-      todosUsuarios.push({ ...pnipeUsuario, pesquisador_id: perfil?.id || null, pesquisador_foto: perfil?.foto || null,
+      todosUsuarios.push({ ...pnipeUsuario, pesquisador_id: perfil?.id || null, pesquisador_lattes_id: perfil?.lattes_id || null, pesquisador_foto: perfil?.foto || null,
         laboratorios: pnipeUsuario.laboratorios.sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR')) });
     }
   }
