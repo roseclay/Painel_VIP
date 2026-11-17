@@ -1,4 +1,4 @@
-const FILTROS_VITRINE_VAZIOS = { fonte: 'todos', instituicao: '', tema: '', area: '', tecnica: '', status: '', cidade: '', laboratorio: '', laboratorioNome: '', q: '' };
+const FILTROS_VITRINE_VAZIOS = { fonte: 'todos', instituicao: '', tema: '', area: '', tecnica: '', status: '', cidade: '', laboratorio: '', laboratorioNome: '', papel: '', q: '' };
 
 function paramsDaVitrine(filtros, tipo = 'todos') {
   const params = new URLSearchParams();
@@ -80,7 +80,7 @@ function SeletorFiltro({ rotulo, valor, opcoes, placeholder, aoMudar }) {
   );
 }
 
-function FiltroVitrine({ filtros, opcoes, aoMudar, mostrarSituacao }) {
+function FiltroVitrine({ filtros, opcoes, aoMudar, mostrarSituacao, modoUsuarios }) {
   const mudar = (chave, valor) => aoMudar({ ...filtros, [chave]: valor });
   const ativo = Object.values(filtros).some((valor) => valor && valor !== 'todos');
   return (
@@ -91,30 +91,34 @@ function FiltroVitrine({ filtros, opcoes, aoMudar, mostrarSituacao }) {
         <label className="block">
           <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Busca livre</span>
           <input type="search" value={filtros.q} onChange={(e) => mudar('q', e.target.value)}
-            placeholder="Nome, equipamento, laboratório, técnica ou palavra-chave"
+            placeholder={modoUsuarios ? 'Busque um usuário por nome' : 'Nome, equipamento, laboratório, técnica ou palavra-chave'}
             className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm outline-none transition focus:border-[#57269b] focus:ring-2 focus:ring-purple-100" />
         </label>
       </div>
       <FaixaInstituicoes valor={filtros.instituicao} instituicoes={opcoes.instituicoes} aoMudar={(valor) => mudar('instituicao', valor)} />
-      {filtros.cidade && <div className="mt-4 flex items-center gap-2 border-t border-slate-100 pt-4">
+      {!modoUsuarios && filtros.cidade && <div className="mt-4 flex items-center gap-2 border-t border-slate-100 pt-4">
         <span className="rounded-full bg-blue-50 px-3 py-1.5 text-sm font-semibold text-blue-800">Município: {filtros.cidade}</span>
         <button type="button" onClick={() => mudar('cidade', '')} className="rounded-full px-2 py-1 text-sm font-bold text-slate-500 hover:bg-slate-100" aria-label={`Remover filtro do município ${filtros.cidade}`}>×</button>
       </div>}
-      {filtros.laboratorio && <div className="mt-4 flex items-center gap-2 border-t border-slate-100 pt-4">
+      {!modoUsuarios && filtros.laboratorio && <div className="mt-4 flex items-center gap-2 border-t border-slate-100 pt-4">
         <span className="max-w-full truncate rounded-full bg-cyan-50 px-3 py-1.5 text-sm font-semibold text-cyan-800">Laboratório: {filtros.laboratorioNome || filtros.laboratorio}</span>
         <button type="button" onClick={() => aoMudar({ ...filtros, laboratorio: '', laboratorioNome: '' })} className="rounded-full px-2 py-1 text-sm font-bold text-slate-500 hover:bg-slate-100" aria-label="Remover filtro do laboratório">×</button>
       </div>}
-      <div className="mt-4 border-t border-slate-100 pt-4">
+      {modoUsuarios && <div className="mt-4 border-t border-slate-100 pt-4">
+        <GrupoBotoes titulo="Papel no laboratório" valor={filtros.papel} aoMudar={(valor) => mudar('papel', valor)}
+          opcoes={[{ valor: '', rotulo: 'Todos' }, { valor: 'coordenador', rotulo: 'Coordenadores' }, { valor: 'usuario', rotulo: 'Usuários' }]} />
+      </div>}
+      {!modoUsuarios && <div className="mt-4 border-t border-slate-100 pt-4">
         <GrupoBotoes titulo="Filtre por grande área" valor={filtros.tema} aoMudar={(valor) => mudar('tema', valor)}
           opcoes={[{ valor: '', rotulo: 'Todas as áreas' }, ...(opcoes.temas || [])]} />
-      </div>
-      <div className={`mt-4 grid gap-3 ${mostrarSituacao ? 'md:grid-cols-3' : 'md:grid-cols-2'}`}>
+      </div>}
+      {!modoUsuarios && <div className={`mt-4 grid gap-3 ${mostrarSituacao ? 'md:grid-cols-3' : 'md:grid-cols-2'}`}>
         <SeletorFiltro rotulo="Área de atuação" valor={filtros.area} opcoes={opcoes.areas} placeholder="Todas as áreas" aoMudar={(valor) => mudar('area', valor)} />
         <SeletorFiltro rotulo="Técnica principal" valor={filtros.tecnica} opcoes={opcoes.tecnicas} placeholder="Todas as técnicas" aoMudar={(valor) => mudar('tecnica', valor)} />
         {mostrarSituacao && <SeletorFiltro rotulo="Situação do equipamento" valor={filtros.status}
           opcoes={[{ valor: 'ativo', rotulo: 'Ativo' }, { valor: 'inativo', rotulo: 'Inativo' }]}
           placeholder="Ativos e inativos" aoMudar={(valor) => mudar('status', valor)} />}
-      </div>
+      </div>}
       {ativo && <div className="mt-4 flex justify-end"><button type="button" onClick={() => aoMudar(FILTROS_VITRINE_VAZIOS)}
         className="rounded-xl px-4 py-2 text-sm font-semibold text-[#57269b] hover:bg-purple-50">Limpar todos os filtros</button></div>}
     </section>

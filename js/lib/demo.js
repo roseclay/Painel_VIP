@@ -18,6 +18,7 @@ Obs.demo = (function () {
     ['multidisciplinar', 'Multidisciplinar', /multidisciplin|interdisciplin|sustent|ambient/i],
   ];
   let cache;
+  let cacheUsuarios;
   const normalizar = (s) => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
   const lista = (s) => [...new Set(String(s || '').split(/[;\n|]+/).map((v) => v.trim()).filter((v) => v.length > 2))];
   const textoBusca = (i) => [i.nome, i.sigla, i.instituicao, i.instituicao_nome, i.cidade, i.descricao,
@@ -250,5 +251,47 @@ Obs.demo = (function () {
     };
   }
 
-  return { obterVitrine, carregar };
+  async function carregarUsuarios() {
+    if (cacheUsuarios) return cacheUsuarios;
+    const resposta = await fetch('dados/usuarios.json');
+    if (!resposta.ok) throw new Error('Não foi possível carregar os usuários da vitrine.');
+    cacheUsuarios = (await resposta.json()).usuarios || [];
+    return cacheUsuarios;
+  }
+
+  async function obterUsuarios(params) {
+    const fonte = params.get('fonte') || 'todos';
+    const instituicao = (params.get('instituicao') || '').toUpperCase();
+    const papel = params.get('papel') || '';
+    const busca = normalizar(params.get('q') || '');
+    const limite = Math.min(500, Math.max(24, Number(params.get('limite')) || 240));
+    const usuarios = await carregarUsuarios();
+    const daFonte = fonte === 'todos' ? usuarios : usuarios.filter((usuario) => String(usuario.fonte).split('+').includes(fonte));
+    const instituicoes = new Map();
+    daFonte.forEach((usuario) => (usuario.instituicoes || []).forEach((item) => {
+      const atual = instituicoes.get(item.sigla) || { sigla: item.sigla, nome: item.nome || item.sigla, usuarios: 0 };
+      atual.usuarios += 1;
+      instituicoes.set(item.sigla, atual);
+    }));
+    const filtrados = daFonte.filter((usuario) => {
+      if (instituicao && !(usuario.instituicoes || []).some((item) => item.sigla === instituicao)) return false;
+      if (papel && usuario.papel !== papel) return false;
+      if (!busca) return true;
+      const texto = [usuario.nome, ...(usuario.instituicoes || []).flatMap((i) => [i.sigla, i.nome]),
+        ...(usuario.laboratorios || []).map((lab) => lab.nome)].filter(Boolean).join(' ');
+      return normalizar(texto).includes(busca);
+    }).sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+    return {
+      total: filtrados.length, exibidos: Math.min(limite, filtrados.length), usuarios: filtrados.slice(0, limite),
+      filtros: { instituicoes: [...instituicoes.values()].sort((a, b) => a.sigla.localeCompare(b.sigla, 'pt-BR')) },
+      kpi: {
+        usuarios: filtrados.filter((u) => u.papel === 'usuario').length,
+        coordenadores: filtrados.filter((u) => u.papel === 'coordenador').length,
+        laboratorios: new Set(filtrados.flatMap((u) => (u.laboratorios || []).map((lab) => `${lab.fonte}:${lab.id}`))).size,
+        instituicoes: new Set(filtrados.flatMap((u) => (u.instituicoes || []).map((i) => i.sigla))).size,
+      },
+    };
+  }
+
+  return { obterVitrine, obterUsuarios, carregar };
 })();
