@@ -35,6 +35,9 @@ node scripts/vip-sql-para-json.js `
   --input C:\caminho\vipdb_bkp.sql `
   --pnipe dados\pnipe.json `
   --pesquisadores C:\caminho\Observatorio_BTX\data\dados_simcc_completo.json
+
+# Complementa os vínculos exatos por nome e instituição usando a API pública do SIMCC.
+node scripts/enriquecer-usuarios-observatorio.js
 ```
 
 O comando também gera um índice público mínimo de pesquisadores para vincular contatos da infraestrutura às fichas do Observatório e `public/dados/usuarios.json`, contendo somente nome, papel, instituição e laboratórios vinculados. Credenciais e dados privados não são exportados.

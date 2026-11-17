@@ -3,7 +3,7 @@ function SecaoUsuarios({ dados, carregando, aoAbrirLaboratorio }) {
   if (!dados?.usuarios?.length) return <EstadoVazio titulo="Nenhum usuário encontrado" descricao="Tente remover um dos filtros ou buscar outro nome." />;
 
   const perfilBase = VIP_CONFIG.observatorioBase.replace(/\/$/, '');
-  const fotosBase = (VIP_CONFIG.observatorioFotosBase || perfilBase).replace(/\/$/, '');
+  const apiBase = (VIP_CONFIG.observatorioApiBase || `${perfilBase}/api`).replace(/\/$/, '');
   const rotuloFonte = (fonte) => fonte === 'vip+pnipe' ? 'VIP + PNIPE' : String(fonte || '').toUpperCase();
   const iniciais = (nome) => String(nome || '').split(/\s+/).filter(Boolean).slice(0, 2).map((parte) => parte[0]).join('').toUpperCase();
 
@@ -28,12 +28,15 @@ function SecaoUsuarios({ dados, carregando, aoAbrirLaboratorio }) {
       <div className="grid gap-4 xl:grid-cols-2">
         {dados.usuarios.map((usuario) => {
           const perfilUrl = usuario.pesquisador_lattes_id ? `${perfilBase}/researcher?lattes_id=${encodeURIComponent(usuario.pesquisador_lattes_id)}` : null;
-          const fotoUrl = usuario.pesquisador_foto ? `${fotosBase}/${usuario.pesquisador_foto.replace(/^\//, '')}` : null;
+          const fotoUrl = usuario.pesquisador_lattes_id && usuario.pesquisador_nome
+            ? `${apiBase}/ResearcherData/Image?name=${encodeURIComponent(usuario.pesquisador_nome)}`
+            : null;
           const labs = usuario.laboratorios || [];
           return <article key={usuario.id} className="min-w-0 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
             <div className="flex min-w-0 items-start gap-3">
-              <span className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-[#57269b] to-[#087f8c] text-base font-black text-white">
-                {fotoUrl ? <img src={fotoUrl} alt="" className="h-full w-full object-cover" onError={(e) => e.currentTarget.remove()} /> : iniciais(usuario.nome)}
+              <span className="relative flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-[#57269b] to-[#087f8c] text-base font-black text-white">
+                {iniciais(usuario.nome)}
+                {fotoUrl && <img src={fotoUrl} alt={`Foto de ${usuario.nome}`} className="absolute inset-0 h-full w-full object-cover" onError={(e) => e.currentTarget.remove()} />}
               </span>
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap gap-1.5">

@@ -295,7 +295,8 @@ function gerar() {
       id: `vip:${usuario.usu_cd_usuario}`, nome, fonte: 'vip', papel: coordenador ? 'coordenador' : 'usuario',
       instituicao: instituicoesLista[0].sigla, instituicoes: instituicoesLista,
       laboratorios: labs.sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR')),
-      pesquisador_id: perfil?.id || null, pesquisador_lattes_id: perfil?.lattes_id || null, pesquisador_foto: perfil?.foto || null,
+      pesquisador_id: perfil?.id || null, pesquisador_nome: perfil?.nome || null,
+      pesquisador_lattes_id: perfil?.lattes_id || null, pesquisador_foto: perfil?.foto || null,
     });
   }
 
@@ -327,10 +328,12 @@ function gerar() {
       existente.laboratorios.push(...pnipeUsuario.laboratorios);
       existente.laboratorios.sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
       existente.pesquisador_id ||= perfil?.id || null;
+      existente.pesquisador_nome ||= perfil?.nome || null;
       existente.pesquisador_lattes_id ||= perfil?.lattes_id || null;
       existente.pesquisador_foto ||= perfil?.foto || null;
     } else {
-      todosUsuarios.push({ ...pnipeUsuario, pesquisador_id: perfil?.id || null, pesquisador_lattes_id: perfil?.lattes_id || null, pesquisador_foto: perfil?.foto || null,
+      todosUsuarios.push({ ...pnipeUsuario, pesquisador_id: perfil?.id || null, pesquisador_nome: perfil?.nome || null,
+        pesquisador_lattes_id: perfil?.lattes_id || null, pesquisador_foto: perfil?.foto || null,
         laboratorios: pnipeUsuario.laboratorios.sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR')) });
     }
   }
