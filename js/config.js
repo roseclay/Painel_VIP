@@ -5,8 +5,9 @@ window.VIP_CONFIG = {
   textoRodape: 'Infraestrutura de pesquisa reunida a partir do VIP e da Plataforma Nacional de Infraestrutura de Pesquisa (PNIPE/MCTI).',
   // Perfis oficiais do Observatório usam o identificador Lattes.
   observatorioBase: 'https://observatoriocti.secti.ba.gov.br/simcc',
-  observatorioFotosBase: 'https://observatoriocti.secti.ba.gov.br/snct',
-  versaoDados: '20261117c',
+  // Fotografias públicas são servidas pela API oficial do SIMCC.
+  observatorioApiBase: 'https://observatoriocti.secti.ba.gov.br/simcc/api',
+  versaoDados: '20261117d',
   // Vazio = mesma origem do servidor Node que serve esta página.
   apiBase: '',
 };

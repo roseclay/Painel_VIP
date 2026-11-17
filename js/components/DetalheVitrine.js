@@ -45,8 +45,10 @@ function PainelDetalhe({ item, aoVoltar, aoVerEquipamentos }) {
   const baseObservatorio = VIP_CONFIG.observatorioBase.replace(/\/$/, '');
   const lattesId = item.pesquisador_lattes_id || (String(item.lattes || '').match(/\d{10,}/) || [])[0];
   const perfilUrl = lattesId ? `${baseObservatorio}/researcher?lattes_id=${encodeURIComponent(lattesId)}` : null;
-  const baseFotos = (VIP_CONFIG.observatorioFotosBase || baseObservatorio).replace(/\/$/, '');
-  const fotoPesquisador = item.pesquisador_foto ? `${baseFotos}/${item.pesquisador_foto.replace(/^\//, '')}` : null;
+  const apiBase = (VIP_CONFIG.observatorioApiBase || `${baseObservatorio}/api`).replace(/\/$/, '');
+  const fotoPesquisador = lattesId && item.pesquisador_nome
+    ? `${apiBase}/ResearcherData/Image?name=${encodeURIComponent(item.pesquisador_nome)}`
+    : null;
   const campos = [
     ['Fonte', item.fonte === 'pnipe' ? 'PNIPE / MCTI' : 'VIP'],
     ['Tipo', item.tipo === 'laboratorio' ? 'Laboratório' : 'Equipamento'],
