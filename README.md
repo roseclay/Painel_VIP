@@ -14,17 +14,20 @@ Vitrine pública de infraestrutura de pesquisa que apresenta dados do VIP e do P
 
 O front segue a mesma tecnologia do [Observatorio_Tematico](https://github.com/petcau/Observatorio_Tematico): React, Babel e Tailwind carregados via CDN, JSX transformado no navegador, sem build e sem bundler.
 
-## Como rodar
+## Publicação recomendada no Observatório
 
-O navegador não fala direto com o SQL Server, então há um servidor Node mínimo que serve a pasta `public/` e expõe a API de dados.
+A vitrine pública usa os catálogos sanitizados de `public/dados/`. Ela não precisa de Node, SQL Server, credenciais ou acesso direto à base do VIP. O contêiner incluído serve a aplicação com Nginx tanto na raiz quanto em `/painel-vip/`:
 
+```bash
+docker compose up -d --build
+curl http://localhost:8080/healthz
 ```
-npm install
-cp .env.example .env   # preencha as credenciais do SQL Server
-npm start              # http://localhost:3000
-```
 
-O `.env` não é versionado. Use um usuário do banco somente leitura. Não abra `public/index.html` direto nem pelo Live Server: sem o servidor Node, as chamadas a `/api` não funcionam.
+No proxy do Observatório, encaminhe `https://observatoriocti.secti.ba.gov.br/painel-vip/` para `http://painel-vip:80` (na mesma rede Docker) ou `http://127.0.0.1:8080` (porta publicada no host).
+
+## API Node opcional
+
+O `server.js` e a dependência `mssql` foram preservados para consultas internas ou futuras integrações com SQL Server. Eles não são necessários para a vitrine publicada. Para habilitá-los, configure um usuário somente leitura no `.env`, execute `npm install && npm start` e altere `usarApiServidor` para `true` em `public/js/config.js`.
 
 ## Publicação estática e dados do VIP
 
@@ -44,7 +47,8 @@ O comando também gera um índice público mínimo de pesquisadores para vincula
 
 ## Estrutura
 
-- `server.js` — API Express. A vitrine usa `/api/vitrine`; as rotas anteriores de análise continuam disponíveis para compatibilidade.
+- `Dockerfile`, `compose.yaml` e `deploy/nginx.conf` — publicação estática recomendada, sem banco.
+- `server.js` — API Express opcional; as rotas anteriores de análise continuam disponíveis para compatibilidade.
 - `public/index.html` — carrega as bibliotecas por CDN e os scripts na ordem.
 - `public/js/config.js` — título, texto do rodapé e origem da API.
 - `public/js/lib/` — formatação, cores e cliente da API.

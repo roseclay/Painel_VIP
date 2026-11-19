@@ -3,7 +3,9 @@ window.Obs = window.Obs || {};
 Obs.api = (function () {
   async function obter(caminho, params) {
     const previewLocal = new URLSearchParams(window.location.search).get('preview') === 'pages';
-    if (window.location.hostname.endsWith('github.io') || previewLocal) {
+    const usarDadosEstaticos = VIP_CONFIG.usarApiServidor !== true
+      || window.location.hostname.endsWith('github.io') || previewLocal;
+    if (usarDadosEstaticos) {
       if (caminho === '/api/vitrine') return Obs.demo.obterVitrine(params || new URLSearchParams());
       if (caminho === '/api/usuarios') return Obs.demo.obterUsuarios(params || new URLSearchParams());
     }
