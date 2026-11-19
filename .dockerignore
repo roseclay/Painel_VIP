@@ -1,6 +1,9 @@
 *
 !Dockerfile
-!deploy/
-!deploy/nginx.conf
+!package.json
+!package-lock.json
+!server.js
 !public/
 !public/**
+!dados/
+!dados/**

@@ -14,7 +14,7 @@ jobs:
         run: docker build -t painel-vip:teste .
       - name: Testar contêiner
         run: |
-          docker run -d --name painel-vip-teste -p 8080:80 painel-vip:teste
+          docker run -d --name painel-vip-teste -p 8080:3000 painel-vip:teste
           for tentativa in {1..15}; do
             if curl --fail --silent http://127.0.0.1:8080/healthz; then
               break

@@ -30,7 +30,10 @@ const imgUrl = (pasta, hash) => (hash ? `${IMG_BASE}/${pasta}/${encodeURICompone
 const app = express();
 // Campos do legado vêm com espaços em branco; normaliza para null
 app.set('json replacer', (k, v) => (typeof v === 'string' ? v.trim() || null : v));
-app.use(express.static(path.join(__dirname, 'public')));
+const publicDir = path.join(__dirname, 'public');
+app.get('/healthz', (_req, res) => res.type('text/plain').send('ok\n'));
+app.use(express.static(publicDir));
+app.use('/painel-vip', express.static(publicDir));
 
 // Falhas de rede/conexão (o Azure SQL derruba conexões ociosas): recria o pool e tenta mais uma vez.
 const erroDeConexao = (e) => ['ESOCKET', 'ECONNCLOSED', 'ETIMEOUT', 'ECONNRESET', 'ENOTOPEN'].includes(e.code)

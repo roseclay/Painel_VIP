@@ -16,18 +16,18 @@ O front segue a mesma tecnologia do [Observatorio_Tematico](https://github.com/p
 
 ## Publicação recomendada no Observatório
 
-A vitrine pública usa os catálogos sanitizados de `public/dados/`. Ela não precisa de Node, SQL Server, credenciais ou acesso direto à base do VIP. O contêiner incluído serve a aplicação com Nginx tanto na raiz quanto em `/painel-vip/`:
+A vitrine pública usa os catálogos sanitizados de `public/dados/`. O contêiner executa o servidor Node/Express (`server.js`) e serve a aplicação tanto na raiz quanto em `/painel-vip/`. O banco SQL Server não é obrigatório para o serviço iniciar:
 
 ```bash
 docker compose up -d --build
 curl http://localhost:8080/healthz
 ```
 
-No proxy do Observatório, encaminhe `https://observatoriocti.secti.ba.gov.br/painel-vip/` para `http://painel-vip:80` (na mesma rede Docker) ou `http://127.0.0.1:8080` (porta publicada no host).
+No proxy do Observatório, encaminhe `https://observatoriocti.secti.ba.gov.br/painel-vip/` para `http://painel-vip:3000` (na mesma rede Docker) ou `http://127.0.0.1:8080` (porta publicada no host).
 
-## API Node opcional
+## Conexão opcional com o SQL Server
 
-O `server.js` e a dependência `mssql` foram preservados para consultas internas ou futuras integrações com SQL Server. Eles não são necessários para a vitrine publicada. Para habilitá-los, configure um usuário somente leitura no `.env`, execute `npm install && npm start` e altere `usarApiServidor` para `true` em `public/js/config.js`.
+O Node já roda dentro do contêiner. Por padrão, a interface lê os catálogos públicos em JSON e não abre conexão com o banco. Para usar as rotas da API SQL, crie um `.env` com `DB_SERVER`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD` e, opcionalmente, `IMG_BASE`; depois altere `usarApiServidor` para `true` em `public/js/config.js` e reconstrua a imagem. O `compose.yaml` repassa essas variáveis sem gravar credenciais no repositório.
 
 ## Publicação estática e dados do VIP
 
@@ -47,8 +47,8 @@ O comando também gera um índice público mínimo de pesquisadores para vincula
 
 ## Estrutura
 
-- `Dockerfile`, `compose.yaml` e `deploy/nginx.conf` — publicação estática recomendada, sem banco.
-- `server.js` — API Express opcional; as rotas anteriores de análise continuam disponíveis para compatibilidade.
+- `Dockerfile` e `compose.yaml` — servidor Node/Express conteinerizado; o banco é opcional.
+- `server.js` — entrega a interface em `/` e `/painel-vip/` e mantém as rotas da API SQL disponíveis para integração.
 - `public/index.html` — carrega as bibliotecas por CDN e os scripts na ordem.
 - `public/js/config.js` — título, texto do rodapé e origem da API.
 - `public/js/lib/` — formatação, cores e cliente da API.
