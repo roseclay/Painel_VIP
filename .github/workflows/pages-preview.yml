@@ -2,7 +2,7 @@ name: Publicar preview no GitHub Pages
 
 on:
   push:
-    branches: [codex/vitrine-vip-pnipe]
+    branches: [vitrine-infraestrutura]
   workflow_dispatch:
 
 permissions:
