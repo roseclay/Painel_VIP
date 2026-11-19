@@ -8,6 +8,9 @@ window.VIP_CONFIG = {
   // Fotografias públicas são servidas pela API oficial do SIMCC.
   observatorioApiBase: 'https://observatoriocti.secti.ba.gov.br/simcc/api',
   versaoDados: '20261117d',
-  // Vazio = mesma origem do servidor Node que serve esta página.
+  // A vitrine publicada usa os catálogos JSON de public/dados e não precisa de banco.
+  // Altere para true apenas se houver uma API Node + SQL Server configurada no mesmo host.
+  usarApiServidor: false,
+  // Vazio = mesma origem do servidor que serve esta página.
   apiBase: '',
 };
